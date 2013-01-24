@@ -1,6 +1,5 @@
-******************************
-*       NOR Dump Tool        *
-******************************
+
+     NOR Dump Tool
 
 Open source project aimed to help to validate PS3 NOR dumps
 At the moment (January 2013) the code is probably able
@@ -26,3 +25,13 @@ Option: -E FileName Start Size : Extract specific NOR Section from 'Start' for '
 Option: -D Start Size H/A : Display a specific NOR Section from 'Start' for 'Size' long,
                 use H or A for Hexa or ASCII
 By default -P -G -C and -F will be applied if no option is given
+
+Examples:
+ - Display Usage list:
+ ./NORDumpTool
+
+ - Check a dump:
+ ./NORDumpTool dumpfilename.bin
+
+ - Split the dump into separate files to a folder like asecure_loader, eEID and so on. No checking done here! it just extract the binaries
+ ./NORDumpTool dumpfilename.bin -S FolderNameWhereToStoreFiles
