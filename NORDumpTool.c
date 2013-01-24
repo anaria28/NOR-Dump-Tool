@@ -7,12 +7,12 @@
 // - Extract some specific console information (S/N, MAC, and so on)
 //
 // Versions :
+// 0.9.5 Increased portability to Windows via MinGW32
 // 0.9.4 Fixed stupid mistake in ReadSection() (Thx @Sarah1331)
 // 0.9.3 Added checking of area filled with unique byte(s) e.g. in flash format: 0x210 -> 0x3FF : full of FF
 // 0.9.2 memory allocation fix (Thx @judges) in CheckPerConsoleData() + fixed wrong English (mixed French...) in main()
 // 0.9.1 Added -D option to display a specific section in Hexa or ASCII
 // 0.9.0 First public release
-
 
 #include <sys/stat.h>
 #include <unistd.h>
@@ -21,6 +21,14 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <openssl/md5.h>
+
+#ifdef __MINGW32__
+// for windows
+#define MKDIR(x,y) mkdir(x)
+#else
+// for the real world
+#define MKDIR(x,y) mkdir(x,y)
+#endif
 
 #define HexaType        	0
 #define ASCIIType       	1
@@ -114,7 +122,7 @@ struct IndividualSystemData{
 	char* MinFW;
 };
 
-static struct IndividualSystemData CheckPerSKU[50] = {
+static struct IndividualSystemData CheckPerSKU[] = {
 	{"01","DEH-Z1010","1420","113E",0x2D020,"2CFE","2CFE","<=0.80.004"},
 	{"01","DECR-1000","EC40","0EC0",0x2A840,"2A7F","2A7F","<=0.85.009"},
 	{"01","DEH-H1001-D?","EC40","0EC0",0x2A830,"2A7F","2A7F","<=0.85.009"},
@@ -160,8 +168,7 @@ static struct IndividualSystemData CheckPerSKU[50] = {
 	{"0B","CECH-25xx(JSD-001) factory FW 3.60 datecode 1B","F920","0F8E",0x2FFF0,"2FFB","2FFB","3.6"},
 	{"0B","CECH-25xx(JTP-001) factory FW 3.60","F920","0F8E",0x2FFF0,"2FFB","2FFB","3.6"},
 	{"0C","CECH-30xx(KTE-001) factory FW 3.65","F920","0F8E",0x2FFF0,"2FFB","2FFB","3.6"},
-	{"0D","CECH-40xx(MSX-001)","","",0,"","","4.10?"},
-	{"0D","CECH-40xx(MPX-001)","","",0,"","",""},
+	{"0D","CECH-40xx(MSX-001 or MPX-001)","F9B0","0F97",0x301F0,"301B","301B","4.20"},
 	{NULL,NULL,NULL,NULL,0,NULL,NULL,NULL}
 };
 
@@ -172,21 +179,21 @@ void MD5SumFileSection(char* SectionText, FILE *FileToRead, uint32_t Position, u
 	int DataWidth = 0x10;
 	unsigned char DataValue[DataWidth];
     MD5_CTX mdContext;
-    
+
     MD5_Init (&mdContext);
-	
+
 	fseek(FileToRead, Position, SEEK_SET);
 	for (Cursor=0;Cursor<NOR_FILE_SIZE;Cursor+=DataWidth) {
 		ByteSize = fread (DataValue, 1, DataWidth, FileToRead);
         MD5_Update (&mdContext, DataValue, ByteSize);
 	}
-	
+
 	MD5_Final (MD5Sum,&mdContext);
-	
+
 	printf ("%s", SectionText);
 	for(Cursor = 0; Cursor < MD5_DIGEST_LENGTH; Cursor++)
 		printf("%02x", MD5Sum[Cursor]);
-	
+
 	printf("\n");
 }
 
@@ -194,21 +201,21 @@ uint8_t ExtractSection(char* SectionName, FILE *FileToRead, uint32_t Position, u
 	uint32_t Cursor;
 	char *Buffer;
 	FILE *BinaryFile2;
-	
+
 	BinaryFile2 = fopen(SectionName, "wb");
 	if (!BinaryFile2) {
 		printf("Failed to open %s\n", SectionName);
 		return EXIT_FAILURE;
 	}
-	
+
 	fseek(FileToRead, Position, SEEK_SET);
-	
+
 	if((Buffer = malloc(Size + 1)))
 		fread(Buffer, Size, 1, FileToRead);
-    
+
 	for (Cursor=0;Cursor<Size;Cursor++)
 		fputc(Buffer[Cursor], BinaryFile2);
-    
+
 	printf("Extraction done for %s\n", SectionName);
     fclose(BinaryFile2);
 	return EXIT_SUCCESS;
@@ -220,47 +227,47 @@ void Statistics(FILE *FileToRead) {
 	uint16_t Counter;
 	uint32_t CountOthers=0;
 	uint32_t CountByte[0xFF+1];
-	
+
 	char *Status00="";
 	char *StatusFF="";
 	char *StatusOthers="";
-	
+
 	printf("******************************\n");
 	printf("*         Statistics         *\n");
 	printf("******************************\n");
-	
+
 	fseek(FileToRead, 0, SEEK_SET);
-    
+
 	for (Counter=0x00;Counter<0xFF+1;Counter++)
 		CountByte[Counter]=0;
-    
+
 	for (Cursor=0;Cursor<NOR_FILE_SIZE;Cursor++)
 		CountByte[fgetc(FileToRead)]+=1;
-    
+
 	for (Counter=0x01;Counter<0xFF;Counter++) {
 		if (CountOthers<CountByte[Counter])
 			CountOthers=CountByte[Counter];
 	}
-	
+
     if (CountByte[0x00]<Min00)
 		Status00="Too Low";
 	else if (CountByte[0x00]>Max00)
 		Status00="Too High";
 	else
 		Status00="Good";
-    
+
 	if (CountByte[0xFF]<MinFF)
 		StatusFF="Too Low";
 	else if (CountByte[0xFF]>MaxFF)
 		StatusFF="Too High";
 	else
 		StatusFF="Good";
-    
+
 	if (CountOthers>MaxOthers)
 		StatusOthers="Too High";
 	else
 		StatusOthers="Good";
-    
+
 	printf ("Bytes '00' found %d times, %2.2f%% %s\n", CountByte[0x00], (double)CountByte[0x00]*100/(double)NOR_FILE_SIZE, Status00);
 	printf ("Bytes 'FF' found %d times, %2.2f%% %s\n", CountByte[0xFF], (double)CountByte[0xFF]*100/(double)NOR_FILE_SIZE, StatusFF);
 	printf ("Other bytes found %d times maximum, %2.2f%% %s\n", CountOthers, (double)CountOthers*100/(double)NOR_FILE_SIZE, StatusOthers);
@@ -277,15 +284,15 @@ void GetSection(FILE *FileToRead, uint32_t Position, uint8_t Size, char DisplayT
     
 	uint16_t Cursor;
 	*SectionData=NULL;
-	
+
 	fseek(FileToRead, Position, SEEK_SET);
-    
+
     if (((DisplayType)&(1<<0))==HexaType) {
         for (Cursor=0;Cursor<Size;Cursor++){
             sprintf(SectionData, "%s%02X", SectionData, fgetc(FileToRead));
         }
     }
-    
+
     else if (((DisplayType)&(1<<0))==ASCIIType) {
         fread(SectionData, Size, 1, FileToRead);
         SectionData[Size]=NULL;
@@ -302,27 +309,26 @@ uint8_t ReadSection(char *SectionName, FILE *FileToRead, uint32_t Position, uint
 	//	char DisplayType	: Print out in Hexa or ASCII, always or only if fail to check
 	//	char CheckFlag		: Check a given pattern
 	//	char *CheckPattern  : Pattern to check, has to be the same size of data read
-    
+
 	uint8_t Cursor;
 	uint8_t Status=EXIT_SUCCESS;
     char DisplaySection[0x100]="";
-	
+
 	fseek(FileToRead, Position, SEEK_SET);
-    
+
 	for (Cursor=0;Cursor<Size;Cursor++)	{
 		if (((DisplayType)&(1<<0))==HexaType)
             sprintf(DisplaySection, "%s%02X", DisplaySection,fgetc(FileToRead));
-        
+
 		else if (((DisplayType)&(1<<0))==ASCIIType)
             sprintf(DisplaySection, "%s%c", DisplaySection,fgetc(FileToRead));
 	}
-	
+
     if (((DisplayType)&(1<<1))==DisplayAlways)
         printf ("Section: %s: read %s \n", SectionName, DisplaySection);
-    
+
 	if (CheckFlag) {
 		for (Cursor=0;Cursor<Size;Cursor++) {
-			
 			if (((DisplayType)&(1<<0))==ASCIIType) {
 				if (DisplaySection[Cursor]!=CheckPattern[Cursor]) {
 					Status=EXIT_FAILURE;
@@ -331,7 +337,6 @@ uint8_t ReadSection(char *SectionName, FILE *FileToRead, uint32_t Position, uint
 					return Status;
 				}
 			}
-			
 			else if (((DisplayType)&(1<<0))==HexaType) {
 				if ((DisplaySection[Cursor*2]!=CheckPattern[Cursor*2])||(DisplaySection[Cursor*2+1]!=CheckPattern[Cursor*2+1])) {
 					Status=EXIT_FAILURE;
@@ -388,7 +393,7 @@ uint8_t CheckGenericData(FILE *FileToRead) {
 		{"FlashRegion 11 name    ", SectionTOC[FlashRegion].Offset+0x0200, 0x05, ASCIIType+DisplayFailOnly, 1, "cvtrm"},
 		{NULL, 0, 0, 0, 0, NULL}
 	};
-	
+
 	printf("******************************\n");
 	printf("*        Generic Data        *\n");
 	printf("******************************\n");
@@ -406,25 +411,24 @@ uint8_t CheckGenericData(FILE *FileToRead) {
 }
 
 uint8_t CheckPerConsoleData(FILE *FileToRead) {
-	
 	int Cursor=0;
 	int SKUFound=0;
 	uint8_t Status=EXIT_SUCCESS;
 	char *DataRead;
 	DataRead = malloc(0x100);
-	
+
 	char *IDPSTargetID;
 	char *metldrOffset0;
 	char *metldrOffset1;
 	char *bootldrOffset0;
 	char *bootldrOffset1;
-	
+
 	IDPSTargetID = malloc(3);
 	metldrOffset0  = malloc(5);
 	metldrOffset1  = malloc(5);
 	bootldrOffset0  = malloc(5);
 	bootldrOffset1  = malloc(5);
-	
+
 	struct Sections SectionPerConsole[] = {
 		{"mtldr size and rev ", SectionTOC[asecure_loader].Offset+0x40, 0x10, HexaType+DisplayAlways, 0, ""},
 		{"mtldr size and pcn ", SectionTOC[asecure_loader].Offset+0x50, 0x10, HexaType+DisplayAlways, 0, ""},
@@ -456,11 +460,11 @@ uint8_t CheckPerConsoleData(FILE *FileToRead) {
 		{"cvtrm hdr bis      ", SectionTOC[cvtrm].Offset+0x024004, 0x04, HexaType+DisplayFailOnly, 1, "5654524D"},
 		{NULL, 0, 0, 0, 0, NULL}
 	};
-	
+
 	printf("******************************\n");
 	printf("*      Per Console Data      *\n");
 	printf("******************************\n");
-	
+
 	while (SectionPerConsole[Cursor].name!=NULL) {
 		Status = Status | ReadSection(SectionPerConsole[Cursor].name
                                       , FileToRead
@@ -471,19 +475,19 @@ uint8_t CheckPerConsoleData(FILE *FileToRead) {
                                       , SectionPerConsole[Cursor].Pattern);
 		Cursor++;
 	}
-    
+
 	GetSection(FileToRead, SectionTOC[asecure_loader].Offset+0x40, 0x04, HexaType, DataRead);
 	Status = Status | ReadSection("metldr hdr",FileToRead, SectionTOC[asecure_loader].Offset+0x50, 0x04, HexaType+DisplayFailOnly, 1, DataRead);
-	
+
 	GetSection(FileToRead, SectionTOC[bootldr].Offset, 0x04, HexaType, DataRead);
 	Status = Status | ReadSection("Bootldr hdr",FileToRead, SectionTOC[bootldr].Offset+0x10, 0x04, HexaType+DisplayFailOnly, 1, DataRead);
-	
+
 	GetSection(FileToRead, SectionTOC[eEID].Offset+0x77, 0x01, HexaType, IDPSTargetID);
 	GetSection(FileToRead, SectionTOC[asecure_loader].Offset+0x1E, 0x02, HexaType, metldrOffset0);
 	GetSection(FileToRead, SectionTOC[asecure_loader].Offset+0x42, 0x02, HexaType, metldrOffset1);
 	GetSection(FileToRead, SectionTOC[bootldr].Offset+0x02, 0x02, HexaType, bootldrOffset0);
 	GetSection(FileToRead, SectionTOC[bootldr].Offset+0x12, 0x02, HexaType, bootldrOffset1);
-	
+
 	Cursor=0;
 	while (CheckPerSKU[Cursor].IDPSTargetID!=NULL) {
 		if ((strcmp(CheckPerSKU[Cursor].IDPSTargetID,IDPSTargetID)==0)
@@ -496,7 +500,7 @@ uint8_t CheckPerConsoleData(FILE *FileToRead) {
 		}
 		Cursor++;
 	}
-	
+
 	if (!SKUFound){
 		printf("Data found in NOR to identify the SKU are:\n- TargetID:'%s'\n", IDPSTargetID);
 		printf("- metldr Offset 0:'%s'\n", metldrOffset0);
@@ -504,7 +508,7 @@ uint8_t CheckPerConsoleData(FILE *FileToRead) {
 		printf("- bootldr Offset 0:'%s'\n", bootldrOffset0);
 		printf("- bootldr Offset 1:'%s'\n", bootldrOffset1);
 	}
-	
+
     free(IDPSTargetID);
     free(metldrOffset0);
     free(metldrOffset1);
@@ -523,16 +527,16 @@ uint8_t CheckFilledData (FILE *FileToRead){
 	uint32_t bootldrFilledSize;
 	uint32_t metldrSize;
 	uint32_t metldrFilledSize;
-	
+
 	char *metldrOffset0;
 	char *bootldrOffset0;
-	
+
 	metldrOffset0  = malloc(5);
 	bootldrOffset0  = malloc(5);
 	printf("******************************\n");
 	printf("* Area filled with 00 or FF  *\n");
 	printf("******************************\n");
-	
+
 	GetSection(FileToRead, SectionTOC[asecure_loader].Offset+0x42, 0x02, HexaType, metldrOffset0);	
 	metldrSize = (strtol(metldrOffset0,NULL,16))*0x10+0x40;
 	metldrFilledSize = 0x2F000 - metldrSize - SectionTOC[asecure_loader].Offset - 0x40;
@@ -540,7 +544,7 @@ uint8_t CheckFilledData (FILE *FileToRead){
 	GetSection(FileToRead, SectionTOC[bootldr].Offset+0x02, 0x02, HexaType, bootldrOffset0);	
 	bootldrSize = (strtol(bootldrOffset0,NULL,16))*0x10+0x40;
 	bootldrFilledSize = 0x1000000 - bootldrSize - SectionTOC[bootldr].Offset;
-	
+
 	struct Sections SectionFilled[] = {
 		{"flashformat", 0x000210, 0x01F0, HexaType+DisplayFailOnly, 1, "FF"},
 		{"asecure_loader", SectionTOC[asecure_loader].Offset+0x40+metldrSize, metldrFilledSize, HexaType+DisplayFailOnly, 1, "00"},
@@ -567,7 +571,7 @@ uint8_t CheckFilledData (FILE *FileToRead){
 		{"bootldr", SectionTOC[bootldr].Offset+bootldrSize, bootldrFilledSize, HexaType+DisplayFailOnly, 1, "FF"},
 		{NULL, 0, 0, 0, 0, NULL}
 	};
-	
+
 	while (SectionFilled[Cursor].name!=NULL) {
 		for (Cursor2=0;Cursor2<SectionFilled[Cursor].Size;Cursor2++) {
 			if ((Status2 = ReadSection(SectionFilled[Cursor].name
@@ -607,35 +611,39 @@ int main(int argc, char *argv[]) {
 	struct Options Option[NBOptions];
 	uint32_t ExtractionSize;
     char DisplaySection[0x30];
-    
+
 	printf("******************************\n");
 	printf("*       NOR Dump Tool        *\n");
 	printf("******************************\n");
+	printf("\nVersion 0.9.5\n");
 	printf("\nOpen source project aimed to help to validate PS3 NOR dumps\n");
 	printf("At the moment (January 2013) the code is probably able\n");
 	printf("to give you a validation status of roughly 90%%!?\n");
 	printf("It's anyway better to do additional checking by your own,\n");
 	printf("unless the code of this tool is fully validated by experts!!!\n\n");
-	
-	if (argc < 2) {
+
+	if ((argc < 2)||(strcmp(argv[1], "--help")==0)) {
 		printf("Usage: %s NorFile.bin (Options)\n", argv[0]);
-		printf("Option: -P : Give percentage of bytes\n");
-		printf("Option: -G : Check PS3 Generic information\n");
-		printf("Option: -C : Check and display perconsole information\n");
-		printf("Option: -F : Check areas filled with '00' or 'FF'\n");
-		printf("Option: -S FolderName : Split some NOR section to folder 'FolderName'\n");
-		printf("Option: -M Start Size : Run MD5 sum on file from 'Start' for 'Size' long\n");
-		printf("Option: -E FileName Start Size : Extract specific NOR Section from 'Start' for 'Size' long\n");
-		printf("Option: -D Start Size H/A : Display a specific NOR Section from 'Start' for 'Size' long,\n\t\tuse H or A for Hexa or ASCII\n");
-		printf("By default -P -G -C and -F will be applied if no option is given\n");
+		printf("Options:\n");
+		printf("\t--help: Display this help.\n");
+		printf("\t-P : Give percentage of bytes\n");
+		printf("\t-G : Check PS3 Generic information\n");
+		printf("\t-C : Check and display perconsole information\n");
+		printf("\t-F : Check areas filled with '00' or 'FF'\n");
+		printf("\t-S FolderName : Split some NOR section to folder 'FolderName'\n");
+		printf("\t-M Start Size : Run MD5 sum on file from 'Start' for 'Size' long\n");
+		printf("\t-E FileName Start Size : Extract specific NOR Section from 'Start' for 'Size' long\n");
+		printf("\t-D Start Size H/A : Display a specific NOR Section from 'Start' for 'Size' long,\n\t\tuse H or A for Hexa or ASCII\n");
+		printf("\nBy default -P -G -C and -F will be applied if no option is given\n");
+		printf("\nRepo: <https://github.com/anaria28/NOR-Dump-Tool>\n");
 		return EXIT_FAILURE;
 	}
-	
+
 	if (argc==2)
 	{
 		OptionType = StatisticsOption + CheckGenericOption + CheckPerPS3Option + CheckFilledOption;
 	}
-	
+
 	for (Cursor=1;Cursor<argc;Cursor++)
 	{
 		if (strcmp(argv[Cursor], "-S")==0){
@@ -681,33 +689,32 @@ int main(int argc, char *argv[]) {
 			OptionType = OptionType + CheckFilledOption;
 		}
 	}
-	
+
 	BinaryFile = fopen(argv[1], "rb");
 	if (!BinaryFile) {
 		printf("Failed to open %s\n", argv[1]);
 		return EXIT_FAILURE;
 	}
-	
+
 	fseek(BinaryFile, 0, SEEK_END);
 	if ((FileLength=ftell(BinaryFile))!=NOR_FILE_SIZE) {
 		printf("File size not correct for NOR, %d Bytes instead of %d\n", FileLength, NOR_FILE_SIZE);
 		return EXIT_FAILURE;
 	}
-	
+
 	if (((OptionType)&(1<<0))==SplitOption) {
 		printf("******************************\n");
 		printf("*     Splitting NOR Dump     *\n");
 		printf("******************************\n");
-		
-		Status = mkdir(Option[0].Name,777);
-        
+
+		Status = MKDIR(Option[0].Name,777);
+
 		if (chdir(Option[0].Name)){
 			printf("Failed to use folder %s\n", Option[0].Name);
 			return EXIT_FAILURE;
 		}
 		GetSection(BinaryFile, SectionTOC[asecure_loader].Offset+0x18, 0x08, HexaType, DataRead);
 		ExtractionSize=strtol(DataRead,NULL,16);
-		printf("Debug Dataread : '%s' / ExtractionSize : '%08X'\n",DataRead,ExtractionSize);
 		Status = ExtractSection("asecure_loader", BinaryFile,SectionTOC[asecure_loader].Offset+0x40,ExtractionSize);
 		Status = ExtractSection("eEID", BinaryFile,SectionTOC[eEID].Offset,SectionTOC[eEID].Size);
 		Status = ExtractSection("cISD", BinaryFile,SectionTOC[cISD].Offset,SectionTOC[cISD].Size);
@@ -722,32 +729,32 @@ int main(int argc, char *argv[]) {
 		Status = ExtractSection("CELL_EXTNOR_AREA", BinaryFile,SectionTOC[CELL_EXTNOR_AREA].Offset,SectionTOC[CELL_EXTNOR_AREA].Size);
 		Status = ExtractSection("bootldr", BinaryFile,SectionTOC[bootldr].Offset,SectionTOC[bootldr].Size);
 	}
-	
+
 	if (((OptionType)&(1<<1))==MD5Option) {
 		printf("******************************\n");
 		printf("*     MD5 Sum on Section     *\n");
 		printf("******************************\n");
 		MD5SumFileSection("Chosen section MD5 sum is: ",BinaryFile,Option[1].Start,Option[1].Size);
 	}
-	
+
 	if (((OptionType)&(1<<2))==ExtractOption) {
 		printf("******************************\n");
 		printf("*    Extracting Section      *\n");
 		printf("******************************\n");
 		Status = ExtractSection(Option[2].Name, BinaryFile, Option[2].Start, Option[2].Size);
 	}
-	
+
 	if (((OptionType)&(1<<3))==StatisticsOption) {
 		Statistics(BinaryFile);
 	}
-	
+
     // Checking not done yet for a byte reserved dump it's then better to warn and exit for now.
 	if ((ReadSection("ByteReserved? ", BinaryFile, SectionTOC[FlashStart].Offset+0x14, 0x04, HexaType, 1, "0FACE0FF")==EXIT_FAILURE)
         && (ReadSection("ByteReserved? ", BinaryFile, SectionTOC[FlashStart].Offset+0x14, 0x04, HexaType, 1, "AC0FFFE0")==EXIT_SUCCESS)) {
         printf("Not treating byte reversed dump at the moment.\n");
         return EXIT_FAILURE;
     }
-	
+
 	if (((OptionType)&(1<<4))==CheckGenericOption) {
 		if((Status = CheckGenericData(BinaryFile)))	{
 			printf("Some checking were not successful.\n");
@@ -758,7 +765,7 @@ int main(int argc, char *argv[]) {
 			printf("Seems good, but you'd eventually like to be carefull!\n");
 		}
 	}
-	
+
 	if (((OptionType)&(1<<5))==CheckPerPS3Option) {
 		if((Status = CheckPerConsoleData(BinaryFile))) {
 			printf("Some checking were not successful.\n");
@@ -769,12 +776,12 @@ int main(int argc, char *argv[]) {
 			printf("Seems good, but you'd eventually like to be carefull!\n");
 		}
 	}
-    
+
     if (((OptionType)&(1<<6))==DisplayAreaOption) {
 		sprintf(DisplaySection, "Start at '0x%08X' of size '0x%02X'", Option[6].Start, Option[6].Size);
         Status = ReadSection(DisplaySection, BinaryFile, Option[6].Start, Option[6].Size, Option[6].Type, 0, "");
     }
-    
+
 	if (((OptionType)&(1<<7))==CheckFilledOption) {
 		if((Status = CheckFilledData(BinaryFile))) {
 			printf("Some checking were not successful.\n");
@@ -784,8 +791,8 @@ int main(int argc, char *argv[]) {
 		else {
 			printf("Seems good, but you'd eventually like to be carefull!\n");
 		}
-		
 	}
+
 	free(DataRead);
 	fclose(BinaryFile);
 	return EXIT_SUCCESS;
