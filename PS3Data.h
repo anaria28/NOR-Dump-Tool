@@ -10,13 +10,92 @@
 #define MAXOTHERS             83886
 // Liste of structures used in NOR Dump Tool code and its includes
 
-struct DatabaseMD5 {
+struct AddrLine
+{
+    uint32_t    Address;
+    char       *LineName;
+};
+
+enum Line
+{
+    A0=0,
+    A1,
+    A2,
+    A3,
+    A4,
+    A5,
+    A6,
+    A7,
+    A8,
+    A9,
+    A10,
+    A11,
+    A12,
+    A13,
+    A14,
+    A15,
+    A16,
+    A17,
+    A18,
+    A19,
+    A20,
+    A21,
+    A22,
+    A23,
+    A24,
+    A25,
+    A26,
+    A27,
+    A28,
+    A29,
+    A30
+};
+
+static struct AddrLine AddressLine[] =
+{
+    {0x00000002, "A0"},
+    {0x00000004, "A1"},
+    {0x00000008, "A2"},
+    {0x00000010, "A3"},
+    {0x00000020, "A4"},
+    {0x00000040, "A5"},
+    {0x00000080, "A6"},
+    {0x00000100, "A7"},
+    {0x00000200, "A8"},
+    {0x00000400, "A9"},
+    {0x00000800, "A10"},
+    {0x00001000, "A11"},
+    {0x00002000, "A12"},
+    {0x00004000, "A13"},
+    {0x00008000, "A14"},
+    {0x00010000, "A15"},
+    {0x00020000, "A16"},    // used to check reptition for 0x14 & 0x00020014 & 0x00040014 & 0x00060014 & 0x00080014 ...
+    {0x00040000, "A17"},    // used to check reptition for 0x14 & 0x00040014 & 0x00080014 & 0x000C0014
+    {0x00080000, "A18"},    // used to check reptition for 0x14 & 0x00080014
+    {0x00100000, "A19"},
+    {0x00200000, "A20"},
+    {0x00400000, "A21"},
+    {0x00800000, "A22"},
+    {0x01000000, "A23"},
+    {0x02000000, "A24"},
+    {0x04000000, "A25"},
+    {0x08000000, "A26"},    //
+    {0x10000000, "A27"},
+    {0x20000000, "A28"},
+    {0x40000000, "A29"},
+    {0x80000000, "A30"},
+    {0, NULL}
+};
+
+struct DatabaseMD5
+{
     char       *Type;
     char       *Version;
     char       *MD5;
 };
 
-struct Sections {
+struct Sections
+{
     char       *name;
     uint32_t   Offset;
     uint32_t   Size;
@@ -25,18 +104,21 @@ struct Sections {
     char       *Pattern;
 };
 
-struct IndividualSystemData {
-    char *IDPSTargetID;     // 0x02F077 (NOR) 0x80877 (NAND)
-    char *SKU;              //
-    char *metldrOffset0;    // 0x081E (NOR) 0x4081E (NAND)
-    char *metldrOffset1;    // 0x0842 (NOR) 0x40842 (NAND)
-    uint32_t bootldrSize;
-    char *bootldrOffset0;   // 0xFC0002 (NOR) 0x02 (NAND)
-    char *bootldrOffset1;   // 0xFC0012 (NOR) 0x12 (NAND)
-    char *MinFW;
+struct IndividualSystemData
+{
+    char     *IDPSTargetID;     // 0x02F077 (NOR) 0x80877 (NAND)
+    char     *SKU;              //
+    char     *metldrOffset0;    // 0x081E (NOR) 0x4081E (NAND)
+    char     *metldrOffset1;    // 0x0842 (NOR) 0x40842 (NAND)
+    uint32_t  bootldrSize;
+    char     *bootldrOffset0;   // 0xFC0002 (NOR) 0x02 (NAND)
+    char     *bootldrOffset1;   // 0xFC0012 (NOR) 0x12 (NAND)
+    char     *MinFW;
+//    char *revision;
 };
 
-enum TOCnames {
+enum TOCnames
+{
     asecure_loader = 0,
     eEID,
     cISD,
@@ -60,7 +142,9 @@ enum TOCnames {
     TotalSections
 };
 
-static struct Sections SectionTOC[] = {
+// http://www.ps3devwiki.com/wiki/Flash
+static struct Sections SectionTOC[] =
+{
     { "asecure_loader"  , 0x000800, 0x02E800, 0, 0, NULL }, // per console
     { "eEID"            , 0x02F000, 0x010000, 0, 0, NULL }, // per console
     { "cISD"            , 0x03F000, 0x0800  , 0, 0, NULL }, // per console
@@ -84,62 +168,118 @@ static struct Sections SectionTOC[] = {
     { NULL, 0, 0, 0, 0, NULL }
 };
 
-static struct IndividualSystemData CheckPerSKU[] = {
-    { "01", "DEH-Z1010",                                       "1420", "113E", 0x2D020, "2CFE", "2CFE", "<= 0.80.004" },
+
+//http://www.ps3devwiki.com/wiki/Talk:Flash:Individual_System_Data_-_cISD
+//http://www.ps3devwiki.com/wiki/Validating_flash_dumps
+static struct IndividualSystemData CheckPerSKU[] =
+{
+    { "01", "DEH-Z1010",                                       "1420", "113E", 0x2D020, "2CFE", "2CFE", "<= 0.80.004" }, // 0
     { "01", "DECR-1000",                                       "EC40", "0EC0", 0x2A840, "2A7F", "2A7F", "<= 0.85.009" },
     { "01", "DEH-H1001-D?",                                    "EC40", "0EC0", 0x2A830, "2A7F", "2A7F", "<= 0.85.009" },
     { "01", "DEH-H1000A-E (COK-001) DEX",                      "EC70", "0EC3", 0x2A1E0, "2A1A", "2A1A", "< 095.001" },
-    { "01", "CECHAxx (COK-001)",                               "EE10", "0EDD", 0x2A430, "2A3F", "2A3F", "1" },
-    { "01", "CECHAxx (COK-001) factory FW 1.00",               "EDA0", "0ED6", 0x2A2E0, "2A2A", "2A2A", "1" },
-    { "01", "CECHAxx (COK-001)",                               "EDE0", "0EDA", 0x2A3B0, "2A37", "2A37", "1" },
-    { "01", "DECHAxx (COK-001) DEX",                           "EDA0", "0ED6", 0x2A2E0, "2A2A", "2A2A", "1" },
-    { "02", "CECHBxx (COK-001)",                               "EDA0", "0ED6", 0x2A2E0, "2A2A", "2A2A", "1" },
-    { "03", "CECHCxx (COK-002)",                               "EDA0", "0ED6", 0x2A2E0, "2A2A", "2A2A", "1" },
-    { "03", "CECHCxx (COK-002) factory FW 1.00",               "EBF0", "0EBB", 0x30480, "3044", "3044", "1" },
-    { "03", "CECHCxx (COK-002)",                               "EDE0", "0EDA", 0x2A3B0, "2A37", "2A37", "1" },
-    { "03", "CECHExx (COK-002)",                               "EA60", "0EA2", 0x2EE70, "2EE3", "2EE3", NULL },
+    { "01", "CECHAxx (COK-001)",                               "EE10", "0EDD", 0x2A430, "2A3F", "2A3F", "1.00" },
+    { "01", "CECHAxx (COK-001) factory FW 1.00",               "EDA0", "0ED6", 0x2A2E0, "2A2A", "2A2A", "1.00" },
+    { "01", "CECHAxx (COK-001)",                               "EDE0", "0EDA", 0x2A3B0, "2A37", "2A37", "1.00" },
+    { "01", "DECHAxx (COK-001) DEX",                           "EDA0", "0ED6", 0x2A2E0, "2A2A", "2A2A", "1.00" },
+    { "02", "CECHBxx (COK-001)",                               "EDA0", "0ED6", 0x2A2E0, "2A2A", "2A2A", "1.00" },
+    { "03", "CECHCxx (COK-002)",                               "EDA0", "0ED6", 0x2A2E0, "2A2A", "2A2A", "1.00" },
+    { "03", "CECHCxx (COK-002) factory FW 1.00",               "EBF0", "0EBB", 0x30480, "3044", "3044", "1.00" },
+    { "03", "CECHCxx (COK-002)",                               "EDE0", "0EDA", 0x2A3B0, "2A37", "2A37", "1.00" },
+    { "03", "CECHExx (COK-002)",                               "EA60", "0EA2", 0x2EE70, "2EE3", "2EE3", "1.97" },
     { "04", "Namco System 357 (COK-002) ARC",                  "E7B0", "0E77", 0x2E900, "2E8C", "2E8C", "1.90?" },
-    { "04", "CECHExx (COK-002)",                               "EE10", "0EDD", 0x2A430, "2A3F", "2A3F", "1" },
-    { "05", "CECHGxx (SEM-001)",                               "E7B0", "0E77", 0x2E900, "2E8C", "2E8C", "1.9" },
-    { "05", "CECHGxx (SEM-001)",                               "E7B0", "0E77", 0x2F200, "2F1C", "2F1C", "2.3" },
-    { "05", "CECHGxx (SEM-001)",                               "E8C0", "0E88", 0x2EF80, "2EF4", "2EF4", "2.3" },
-    { "06", "CECHHxx (DIA-001)",                               "E7B0", "0E77", 0x2F200, "2F1C", "2F1C", "2.3" },
-    { "06", "CECHHxx (DIA-001)",                               "E8C0", "0E88", 0x2EF80, "2EF4", "2EF4", "2.3" },
-    { "06", "CECHHxx (DIA-001)",                               "E8E0", "0E8A", 0x2EF80, "2EF4", "2EF4", "1.97" },
+    { "04", "CECHExx (COK-002)",                               "EE10", "0EDD", 0x2A430, "2A3F", "2A3F", "1.00" },
+    { "05", "CECHGxx (SEM-001)",                               "E7B0", "0E77", 0x2E900, "2E8C", "2E8C", "1.90" },
+    { "05", "CECHGxx (SEM-001)",                               "E7B0", "0E77", 0x2F200, "2F1C", "2F1C", "2.30" },
+    { "05", "CECHGxx (SEM-001)",                               "E8C0", "0E88", 0x2EF80, "2EF4", "2EF4", "2.30" },
+    { "06", "CECHHxx (DIA-001)",                               "E7B0", "0E77", 0x2F200, "2F1C", "2F1C", "2.30" },
+    { "06", "CECHHxx (DIA-001)",                               "E8C0", "0E88", 0x2EF80, "2EF4", "2EF4", "2.30" },
+    { "06", "CECHHxx (DIA-001)",                               "E8E0", "0E8A", 0x2EF80, "2EF4", "2EF4", "1.97" }, // 20
     { "06", "CECHHxx (DIA-001)",                               "EA60", "0EA2", 0x2EE70, "2EE3", "2EE3", "1.97" },
     { "06", "CECHMxx (DIA-001)",                               "EA60", "0EA2", 0x2EE70, "2EE3", "2EE3", "1.97" },
-    { "07", "CECHJxx (DIA-002) factory FW 2.30 - datecode 8B", "E8E0", "0E8A", 0x2EF80, "2EF4", "2EF4", "2.3" },
-    { "07", "CECHJxx (DIA-002)",                               "EA60", "0EA2", 0x2EE70, "2EE3", "2EE3", "2.3" },
-    { "07", "CECHKxx (DIA-002) datecode 8C",                   "EA60", "0EA2", 0x2EE70, "2EE3", "2EE3", "2.3" },
+    { "07", "CECHJxx (DIA-002) factory FW 2.30 - datecode 8B", "E8E0", "0E8A", 0x2EF80, "2EF4", "2EF4", "2.30" },
+    { "07", "CECHJxx (DIA-002)",                               "EA60", "0EA2", 0x2EE70, "2EE3", "2EE3", "2.30" },
+    { "07", "CECHKxx (DIA-002) datecode 8C",                   "EA60", "0EA2", 0x2EE70, "2EE3", "2EE3", "2.30" },
     { "07", "DECHJxx (DIA-002) DEX",                           "E8D0", "0E89", 0x2EAF0, "2EAB", "2EAB", "2.16" },
     { "08", "Namco System 357 (VER-001) ARC",                  "E8D0", "0E89", 0x2EAF0, "2EAB", "2EAB", "2.45?" },
     { "08", "CECHLxx/CECHPxx (VER-001) ",                      "E8D0", "0E89", 0x2EAF0, "2EAB", "2EAB", "2.45" },
     { "08", "CECHLxx (VER-001)",                               "E8D0", "0E89", 0x2EB70, "2EB3", "2EB3", "2.45" },
-    { "08", "CECHLxx (VER-001) factory FW 2.30",               "E890", "0E85", 0x2F170, "2F13", "2F13", "2.3" },
-    { "09", "CECH-20xx (DYN-001) factory FW 2.76",             "E890", "0E85", 0x2F170, "2F13", "2F13", "2.7" },
-    { "09", "DECR-1400 (DEB-001) DECR factory FW 2.60",        "E890", "0E85", 0x2F170, "2F13", "2F13", "2.6" },
-    { "09", "CECH-20xx (DYN-001)",                             "E920", "0E8E", 0x2F3F0, "2F3B", "2F3B", "2.7" },
-    { "0A", "CECH-21xx (SUR-001)",                             "E920", "0E8E", 0x2F4F0, "2F4B", "2F4B", "3.2" },
-    { "0B", "CECH-25xx (JTP-001) factory FW 3.40 datecode 0C", "E920", "0E8E", 0x2F4F0, "2F4B", "2F4B", "3.4" },
-    { "0B", "CECH-25xx (JSD-001) factory FW 3.41 datecode 0C", "E920", "0E8E", 0x2F4F0, "2F4B", "2F4B", "3.4" },
-    { "0B", "CECH-25xx (JSD-001) factory FW 3.56 datecode 0D", "E960", "0E92", 0x2F570, "2F53", "2F53", "3.5" },
-    { "0B", "CECH-25xx (JTP-001) factory FW 3.56 datecode 1A", "E960", "0E92", 0x2F570, "2F53", "2F53", "3.5" },
-    { "0B", "CECH-25xx (JTP-001) factory FW 3.56 datecode 1A", "E960", "0E92", 0x2F5F0, "2F5B", "2F5B", "3.56" },
-    { "0B", "CECH-25xx (JSD-001) factory FW 3.56 datecode 1B", "E960", "0E92", 0x2F5F0, "2F5B", "2F5B", "3.56" },
+    { "08", "CECHLxx (VER-001) factory FW 2.30",               "E890", "0E85", 0x2F170, "2F13", "2F13", "2.30" }, // 30
+    { "09", "CECH-20xx (DYN-001) factory FW 2.76",             "E890", "0E85", 0x2F170, "2F13", "2F13", "2.70" },
+    { "09", "DECR-1400 (DEB-001) DECR factory FW 2.60",        "E890", "0E85", 0x2F170, "2F13", "2F13", "2.60" },
+    { "09", "CECH-20xx (DYN-001)",                             "E920", "0E8E", 0x2F3F0, "2F3B", "2F3B", "2.70" },
+    { "0A", "CECH-21xx (SUR-001)",                             "E920", "0E8E", 0x2F4F0, "2F4B", "2F4B", "3.20" },
+    { "0B", "CECH-25xx (JTP-001) factory FW 3.40 datecode 0C", "E920", "0E8E", 0x2F4F0, "2F4B", "2F4B", "3.40" }, // 35
+    { "0B", "CECH-25xx (JSD-001) factory FW 3.41 datecode 0C", "E920", "0E8E", 0x2F4F0, "2F4B", "2F4B", "3.40" }, // 36
+    { "0B", "CECH-25xx (JSD-001) factory FW 3.56 datecode 0D", "E960", "0E92", 0x2F570, "2F53", "2F53", "3.50" }, // 37
+    { "0B", "CECH-25xx (JTP-001) factory FW 3.56 datecode 1A", "E960", "0E92", 0x2F570, "2F53", "2F53", "3.50" }, // 38
+    { "0B", "CECH-25xx (JTP-001) factory FW 3.56 datecode 1A", "E960", "0E92", 0x2F5F0, "2F5B", "2F5B", "3.56" }, // 39
+    { "0B", "CECH-25xx (JSD-001) factory FW 3.56 datecode 1B", "E960", "0E92", 0x2F5F0, "2F5B", "2F5B", "3.56" }, // 40
     { "0B", "CECH-25xx (JTP-001) factory FW 3.56 datecode 1B", "E960", "0E92", 0x2F5F0, "2F5B", "2F5B", "3.56" },
-    { "0B", "CECH-25xx (JSD-001) factory FW 3.60 datecode 1B", "F920", "0F8E", 0x2FFF0, "2FFB", "2FFB", "3.6" },
-    { "0B", "CECH-25xx (JTP-001) factory FW 3.60",             "F920", "0F8E", 0x2FFF0, "2FFB", "2FFB", "3.6" },
-    { "0C", "CECH-30xx (KTE-001) factory FW 3.65",             "F920", "0F8E", 0x2FFF0, "2FFB", "2FFB", "3.6" },
-    { "0D", "CECH-40xx (MSX-001 or MPX-001)",                  "F9B0", "0F97", 0x301F0, "301B", "301B", "4.20" },
+    { "0B", "CECH-25xx (JSD-001) factory FW 3.60 datecode 1B", "F920", "0F8E", 0x2FFF0, "2FFB", "2FFB", "3.60" },
+    { "0B", "CECH-25xx (JTP-001) factory FW 3.60",             "F920", "0F8E", 0x2FFF0, "2FFB", "2FFB", "3.60" },
+    { "0C", "CECH-30xx (KTE-001) factory FW 3.65",             "F920", "0F8E", 0x2FFF0, "2FFB", "2FFB", "3.60" },
+    { "0D", "CECH-40xx (MSX-001 or MPX-001)",                  "F9B0", "0F97", 0x301F0, "301B", "301B", "4.20" }, // 45
     { NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL}
 };
 
+
+// http://www.ps3devwiki.com/wiki/Talk:Flash:asecure_loader
+
+// static struct IndividualSystemData CheckPerSKU[] = {
+// { "01", "DEH-Z1010",                                       "1420", "113E", 0x2D020, "2CFE", "2CFE", "<= 0.80.004", "" }, // 0
+// { "01", "DECR-1000",                                       "EC40", "0EC0", 0x2A840, "2A7F", "2A7F", "<= 0.85.009", "664566FA7788F8432FB7AA62" },
+// { "01", "DEH-H1001-D?",                                    "EC40", "0EC0", 0x2A830, "2A7F", "2A7F", "<= 0.85.009", "664566FA7788F8432FB7AA62" },
+// { "01", "DEH-H1000A-E (COK-001) DEX",                      "EC70", "0EC3", 0x2A1E0, "2A1A", "2A1A", "< 095.001"  , "8CC6E54B1D54DB912223390E" },
+// { "01", "CECHAxx (COK-001)",                               "EE10", "0EDD", 0x2A430, "2A3F", "2A3F", "1"          , "" },
+// { "01", "CECHAxx (COK-001) factory FW 1.00",               "EDA0", "0ED6", 0x2A2E0, "2A2A", "2A2A", "1"          , "48F43FDE3EEE37119C673663" }, // 5
+// { "01", "CECHAxx (COK-001)",                               "EDE0", "0EDA", 0x2A3B0, "2A37", "2A37", "1"          , "81CF2EF41A336897E0493CB8" },
+// { "01", "DECHAxx (COK-001) DEX",                           "EDA0", "0ED6", 0x2A2E0, "2A2A", "2A2A", "1"          , "48F43FDE3EEE37119C673663" },
+// { "02", "CECHBxx (COK-001)",                               "EDA0", "0ED6", 0x2A2E0, "2A2A", "2A2A", "1"          , "48F43FDE3EEE37119C673663" },
+// { "03", "CECHCxx (COK-002)",                               "EDA0", "0ED6", 0x2A2E0, "2A2A", "2A2A", "1"          , "48F43FDE3EEE37119C673663" },
+// { "03", "CECHCxx (COK-002) factory FW 1.00",               "EBF0", "0EBB", 0x30480, "3044", "3044", "1"          , "94C6A30BBF2F50752E8DC052" }, // 10
+// { "03", "CECHCxx (COK-002)",                               "EDE0", "0EDA", 0x2A3B0, "2A37", "2A37", "1"          , "81CF2EF41A336897E0493CB8" },
+// { "03", "CECHExx (COK-002)",                               "EA60", "0EA2", 0x2EE70, "2EE3", "2EE3", "0.00"       , "" },
+// { "04", "Namco System 357 (COK-002) ARC",                  "E7B0", "0E77", 0x2E900, "2E8C", "2E8C", "1.90?"      , "1362F2C2E6835D6FC144F246" },
+// { "04", "CECHExx (COK-002)",                               "EE10", "0EDD", 0x2A430, "2A3F", "2A3F", "1"          , "2F6C622ECA7FAE0D2F76B5D4" },
+// { "05", "CECHGxx (SEM-001)",                               "E7B0", "0E77", 0x2E900, "2E8C", "2E8C", "1.9"        , "" }, // 15
+// { "05", "CECHGxx (SEM-001)",                               "E7B0", "0E77", 0x2F200, "2F1C", "2F1C", "2.3"        , "" },
+// { "05", "CECHGxx (SEM-001)",                               "E8C0", "0E88", 0x2EF80, "2EF4", "2EF4", "2.3"        , "" },
+// { "06", "CECHHxx (DIA-001)",                               "E7B0", "0E77", 0x2F200, "2F1C", "2F1C", "2.3"        , "" },
+// { "06", "CECHHxx (DIA-001)",                               "E8C0", "0E88", 0x2EF80, "2EF4", "2EF4", "2.3"        , "7822C41EB9F00FA4830A0B69" }, // Found in the wiki
+// { "06", "CECHHxx (DIA-001)",                               "E8E0", "0E8A", 0x2EF80, "2EF4", "2EF4", "1.97"       , "5E1F9CED758B6B94442BF031" }, // Found in the wiki
+// { "06", "CECHHxx (DIA-001)",                               "EA60", "0EA2", 0x2EE70, "2EE3", "2EE3", "1.97"       , "" },
+// { "06", "CECHMxx (DIA-001)",                               "EA60", "0EA2", 0x2EE70, "2EE3", "2EE3", "1.97"       , "" },
+// { "07", "CECHJxx (DIA-002) factory FW 2.30 - datecode 8B", "E8E0", "0E8A", 0x2EF80, "2EF4", "2EF4", "2.3"        , "" },
+// { "07", "CECHJxx (DIA-002)",                               "EA60", "0EA2", 0x2EE70, "2EE3", "2EE3", "2.3"        , "53E7EA237889AE20322A9708" },
+// { "07", "CECHKxx (DIA-002) datecode 8C",                   "EA60", "0EA2", 0x2EE70, "2EE3", "2EE3", "2.3"        , "53E7EA237889AE20322A9708" }, // 25
+// { "07", "DECHJxx (DIA-002) DEX",                           "E8D0", "0E89", 0x2EAF0, "2EAB", "2EAB", "2.16"       , "43B6EF4AE20F7400C8809E53" },
+// { "08", "Namco System 357 (VER-001) ARC",                  "E8D0", "0E89", 0x2EAF0, "2EAB", "2EAB", "2.45?"      , "43B6EF4AE20F7400C8809E53" }, // 27
+// { "08", "CECHLxx/CECHPxx (VER-001) ",                      "E8D0", "0E89", 0x2EAF0, "2EAB", "2EAB", "2.45"       , "43B6EF4AE20F7400C8809E53" }, // 28
+// { "08", "CECHLxx (VER-001)",                               "E8D0", "0E89", 0x2EB70, "2EB3", "2EB3", "2.45"       , "43B6EF4AE20F7400C8809E53" }, // Found in the wiki
+// { "08", "CECHLxx (VER-001) factory FW 2.30",               "E890", "0E85", 0x2F170, "2F13", "2F13", "2.3"        , "" }, // 30
+// { "09", "CECH-20xx (DYN-001) factory FW 2.76",             "E890", "0E85", 0x2F170, "2F13", "2F13", "2.7"        , "BC78B8F02879A81184A0DA74" }, // 31
+// { "09", "DECR-1400 (DEB-001) DECR factory FW 2.60",        "E890", "0E85", 0x2F170, "2F13", "2F13", "2.6"        , "BC78B8F02879A81184A0DA74" }, // 32
+// { "09", "CECH-20xx (DYN-001)",                             "E920", "0E8E", 0x2F3F0, "2F3B", "2F3B", "2.7"        , "" },
+// { "0A", "CECH-21xx (SUR-001)",                             "E920", "0E8E", 0x2F4F0, "2F4B", "2F4B", "3.2"        , "" },
+// { "0B", "CECH-25xx (JTP-001) factory FW 3.40 datecode 0C", "E920", "0E8E", 0x2F4F0, "2F4B", "2F4B", "3.4"        , "99873BC715F280809C302225" }, // 35
+// { "0B", "CECH-25xx (JSD-001) factory FW 3.41 datecode 0C", "E920", "0E8E", 0x2F4F0, "2F4B", "2F4B", "3.4"        , "99873BC715F280809C302225" }, // 36
+// { "0B", "CECH-25xx (JSD-001) factory FW 3.56 datecode 0D", "E960", "0E92", 0x2F570, "2F53", "2F53", "3.5"        , "C3266E4BBB282E76B7677095" },
+// { "0B", "CECH-25xx (JTP-001) factory FW 3.56 datecode 1A", "E960", "0E92", 0x2F570, "2F53", "2F53", "3.5"        , "C3266E4BBB282E76B7677095" },
+// { "0B", "CECH-25xx (JTP-001) factory FW 3.56 datecode 1A", "E960", "0E92", 0x2F5F0, "2F5B", "2F5B", "3.56"       , "DBA53B0AB5181D971524615B" },
+// { "0B", "CECH-25xx (JSD-001) factory FW 3.56 datecode 1B", "E960", "0E92", 0x2F5F0, "2F5B", "2F5B", "3.56"       , "DBA53B0AB5181D971524615B" }, // 40
+// { "0B", "CECH-25xx (JSD-001) factory FW 3.60 datecode 1B", "F920", "0F8E", 0x2FFF0, "2FFB", "2FFB", "3.6"        , "" },
+// { "0B", "CECH-25xx (JTP-001) factory FW 3.60",             "F920", "0F8E", 0x2FFF0, "2FFB", "2FFB", "3.6"        , "" },
+// { "0C", "CECH-30xx (KTE-001) factory FW 3.65",             "F920", "0F8E", 0x2FFF0, "2FFB", "2FFB", "3.6"        , "" },
+// { "0D", "CECH-40xx (MSX-001 or MPX-001)",                  "F9B0", "0F97", 0x301F0, "301B", "301B", "4.20"       , "A2834B1DFD969CC1769517C6" },
+// { NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL}
+// };
+
 // http://www.ps3devwiki.com/wiki/Talk:Revokation
-// below MD5 are calculated over the full space used by the revokation which inldues tones of 00
-// which typically correspond to :
+// below MD5 are calculated over the full space used by the revokation which includes tones of 00
+// this typically corresponds to :
 // MD5SumFileSection (FileToRead, SectionTOC[trvk_prg0].Offset+0x10, 0x0FE0, MD5result);
 //
-// calculating the MD5 on the section which is only contain pure data will give the same MD5 as the file found in a PUP
+// calculating the MD5 on the section which is only containing pure data will give the same MD5 as the file found in a PUP
 // which gives below code.
 // GetSection(FileToRead, SectionTOC[trvk_prg0].Offset+0x0E, 0x02, TYPE_HEX, Buffer);
 // trvk_prg0Size = strtol(Buffer,NULL,16);
@@ -152,7 +292,8 @@ static struct IndividualSystemData CheckPerSKU[] = {
 // 78629d24bd721488f3a1e846938f87df *355/RL_FOR_PROGRAM.img
 //
 
-static struct DatabaseMD5 trvk_prg_MD5[] = {
+static struct DatabaseMD5 trvk_prg_MD5[] =
+{
     {"trvk_prg", "4.31"            , "7B84CFFB3DB4DB6C4F2ED264C5C413B0"},//0
     {"trvk_prg", "4.3"             , "38F41739F715A890598F3523FB56130C"},
     {"trvk_prg", "4.25_DEX"        , "7543C580101650016F52D921BB3D9C4E"},
@@ -221,10 +362,16 @@ static struct DatabaseMD5 trvk_prg_MD5[] = {
     {NULL, NULL, NULL}
 };
 
-static struct DatabaseMD5 trvk_pkg_MD5[] = {
+static struct DatabaseMD5 trvk_pkg_MD5[] =
+{
     {"trvk_pkg", "4.25_DEX"                 , "6AB35C1F02B584AE84474D7ABECD6BDA"},
-    {"trvk_pkg", "4.20/4.21/4.25/4.30/4.31" , "CCB14FE47C09CF4585127CFF2CE72693"},
-    {"trvk_pkg", "4.10/4.11"                , "B73491D0783489FEE31847261364ED41"},
+    {"trvk_pkg", "4.31"                     , "CCB14FE47C09CF4585127CFF2CE72693"},
+    {"trvk_pkg", "4.30"                     , "CCB14FE47C09CF4585127CFF2CE72693"},
+    {"trvk_pkg", "4.25"                     , "CCB14FE47C09CF4585127CFF2CE72693"},
+    {"trvk_pkg", "4.21"                     , "CCB14FE47C09CF4585127CFF2CE72693"},
+    {"trvk_pkg", "4.20"                     , "CCB14FE47C09CF4585127CFF2CE72693"},
+    {"trvk_pkg", "4.11"                     , "B73491D0783489FEE31847261364ED41"},
+    {"trvk_pkg", "4.10"                     , "B73491D0783489FEE31847261364ED41"},
     {"trvk_pkg", "4"                        , "BCBBD3B8F0D6F50AE45B06EC53E1DF3F"},
     {"trvk_pkg", "3.70/3.72/3.73"           , "3947F77FD2E2F997E1E03823C446FB60"},
     {"trvk_pkg", "3.66/3.66_DEX"            , "DE8E6C172782047479638C1EFEAF0F51"},
@@ -283,22 +430,180 @@ static struct DatabaseMD5 trvk_pkg_MD5[] = {
     {"trvk_pkg", "1.02"                     , "B7829DD4B09C25B6918BA78BDEACF07F"},
     {NULL, NULL, NULL}
 };
+// 43D940901E9655AD502C12D990977811 *RL_FOR_PROGRAM.341
+// 78629D24BD721488F3A1E846938F87DF *RL_FOR_PROGRAM.355
+// 78629D24BD721488F3A1E846938F87DF *RL_FOR_PROGRAM.355DBG
+// 369E60A0E5FAC9A987A4098A48E636BB *RL_FOR_PROGRAM.356
+// 333CC79D76D2717092196AEEE951DA12 *RL_FOR_PROGRAM.356-1
+// 0287DBFFCB57382E032B363B5B582D3C *RL_FOR_PROGRAM.420
+// 10F4271AACAFBB1AD7A9E51C5F798CC8 *RL_FOR_PROGRAM.421
+// 848ADAB5B11FF0FE4AA25559B23B6840 *RL_FOR_PROGRAM.430
+static struct DatabaseMD5 RL_FOR_PROGRAM_MD5[] =
+{
+    {"RL_FOR_PROGRAM", "4.25_DEX"                 , ""},
+    {"RL_FOR_PROGRAM", "4.31"                     , ""},
+    {"RL_FOR_PROGRAM", "4.30"                     , "848ADAB5B11FF0FE4AA25559B23B6840"},
+    {"RL_FOR_PROGRAM", "4.25"                     , ""},
+    {"RL_FOR_PROGRAM", "4.21"                     , "10F4271AACAFBB1AD7A9E51C5F798CC8"},
+    {"RL_FOR_PROGRAM", "4.20"                     , "0287DBFFCB57382E032B363B5B582D3C"},
+    {"RL_FOR_PROGRAM", "4.10/4.11"                , ""},
+    {"RL_FOR_PROGRAM", "4"                        , ""},
+    {"RL_FOR_PROGRAM", "3.70/3.72/3.73"           , ""},
+    {"RL_FOR_PROGRAM", "3.66/3.66_DEX"            , ""},
+    {"RL_FOR_PROGRAM", "3.65"                     , ""},
+    {"RL_FOR_PROGRAM", "3.61"                     , ""},
+    {"RL_FOR_PROGRAM", "3.60/3.60_DEX"            , ""},
+    {"RL_FOR_PROGRAM", "3.56_2"                   , ""},
+    {"RL_FOR_PROGRAM", "3.56_1"                   , "333CC79D76D2717092196AEEE951DA12"},
+    {"RL_FOR_PROGRAM", "3.55_DEX"                 , "78629D24BD721488F3A1E846938F87DF"},
+    {"RL_FOR_PROGRAM", "3.50_DEX"                 , ""},
+    {"RL_FOR_PROGRAM", "3.50/3.55"                , "78629D24BD721488F3A1E846938F87DF"},
+    {"RL_FOR_PROGRAM", "3.41_DEX"                 , ""},
+    {"RL_FOR_PROGRAM", "3.40/3.41_2/3.42"         , "43D940901E9655AD502C12D990977811"},
+    {"RL_FOR_PROGRAM", "3.3"                      , ""},
+    {"RL_FOR_PROGRAM", "3.21"                     , ""},
+    {"RL_FOR_PROGRAM", "3.15/3.15_DEX"            , ""},
+    {"RL_FOR_PROGRAM", "3.1"                      , ""},
+    {"RL_FOR_PROGRAM", "3.01"                     , ""},
+    {"RL_FOR_PROGRAM", "3"                        , ""},
+    {"RL_FOR_PROGRAM", "2.8"                      , ""},
+    {"RL_FOR_PROGRAM", "2.76"                     , ""},
+    {"RL_FOR_PROGRAM", "2.7"                      , ""},
+    {"RL_FOR_PROGRAM", "2.6"                      , ""},
+    {"RL_FOR_PROGRAM", "2.53"                     , ""},
+    {"RL_FOR_PROGRAM", "2.52"                     , ""},
+    {"RL_FOR_PROGRAM", "2.5"                      , ""},
+    {"RL_FOR_PROGRAM", "2.43_LEAKED_JIG"          , ""},
+    {"RL_FOR_PROGRAM", "2.43"                     , ""},
+    {"RL_FOR_PROGRAM", "2.42"                     , ""},
+    {"RL_FOR_PROGRAM", "2.41"                     , ""},
+    {"RL_FOR_PROGRAM", "2.4"                      , ""},
+    {"RL_FOR_PROGRAM", "2.36"                     , ""},
+    {"RL_FOR_PROGRAM", "2.35"                     , ""},
+    {"RL_FOR_PROGRAM", "2.3"                      , ""},
+    {"RL_FOR_PROGRAM", "2.2"                      , ""},
+    {"RL_FOR_PROGRAM", "2.17"                     , ""},
+    {"RL_FOR_PROGRAM", "2.1"                      , ""},
+    {"RL_FOR_PROGRAM", "2.01"                     , ""},
+    {"RL_FOR_PROGRAM", "2"                        , ""},
+    {"RL_FOR_PROGRAM", "1.93"                     , ""},
+    {"RL_FOR_PROGRAM", "1.92"                     , ""},
+    {"RL_FOR_PROGRAM", "1.9"                      , ""},
+    {"RL_FOR_PROGRAM", "1.82"                     , ""},
+    {"RL_FOR_PROGRAM", "1.81"                     , ""},
+    {"RL_FOR_PROGRAM", "1.8"                      , ""},
+    {"RL_FOR_PROGRAM", "1.7"                      , ""},
+    {"RL_FOR_PROGRAM", "1.6"                      , ""},
+    {"RL_FOR_PROGRAM", "1.54"                     , ""},
+    {"RL_FOR_PROGRAM", "1.51"                     , ""},
+    {"RL_FOR_PROGRAM", "1.5"                      , ""},
+    {"RL_FOR_PROGRAM", "1.32"                     , ""},
+    {"RL_FOR_PROGRAM", "1.31"                     , ""},
+    {"RL_FOR_PROGRAM", "1.3"                      , ""},
+    {"RL_FOR_PROGRAM", "1.11"                     , ""},
+    {"RL_FOR_PROGRAM", "1.1"                      , ""},
+    {"RL_FOR_PROGRAM", "1.02"                     , ""},
+    {NULL, NULL, NULL}
+};
+// 30117B4E11FB67AD42F382E0A8049717 *RL_FOR_PACKAGE.341
+// A3A29B8A29F7C057ADA56ECCB062325C *RL_FOR_PACKAGE.355
+// 77F481E1BCF309FB9357FA1F1E7C7B39 *RL_FOR_PACKAGE.355DBG
+// FBD76F774AC6B9ED96508B6C8973603E *RL_FOR_PACKAGE.356
+// 526BE641D285D8697DA72EAB6EFDA9F5 *RL_FOR_PACKAGE.356-1
+// AB428BEB148B89F7EEE75096EE36C7A3 *RL_FOR_PACKAGE.420
+// AB428BEB148B89F7EEE75096EE36C7A3 *RL_FOR_PACKAGE.421
+// AB428BEB148B89F7EEE75096EE36C7A3 *RL_FOR_PACKAGE.430
+static struct DatabaseMD5 RL_FOR_PACKAGE_MD5[] =
+{
+    {"RL_FOR_PROGRAM", "4.25_DEX"                 , ""},
+    {"RL_FOR_PROGRAM", "4.31"                     , ""},
+    {"RL_FOR_PROGRAM", "4.30"                     , "AB428BEB148B89F7EEE75096EE36C7A3"},
+    {"RL_FOR_PROGRAM", "4.25"                     , ""},
+    {"RL_FOR_PROGRAM", "4.21"                     , "AB428BEB148B89F7EEE75096EE36C7A3"},
+    {"RL_FOR_PROGRAM", "4.20"                     , "AB428BEB148B89F7EEE75096EE36C7A3"},
+    {"RL_FOR_PROGRAM", "4.11"                     , ""},
+    {"RL_FOR_PROGRAM", "4.10"                     , ""},
+    {"RL_FOR_PROGRAM", "4"                        , ""},
+    {"RL_FOR_PROGRAM", "3.70/3.72/3.73"           , ""},
+    {"RL_FOR_PROGRAM", "3.66/3.66_DEX"            , ""},
+    {"RL_FOR_PROGRAM", "3.65"                     , ""},
+    {"RL_FOR_PROGRAM", "3.61"                     , ""},
+    {"RL_FOR_PROGRAM", "3.60/3.60_DEX"            , ""},
+    {"RL_FOR_PROGRAM", "3.56_2"                   , "FBD76F774AC6B9ED96508B6C8973603E"},
+    {"RL_FOR_PROGRAM", "3.56_1"                   , "526BE641D285D8697DA72EAB6EFDA9F5"},
+    {"RL_FOR_PROGRAM", "3.55_DEX"                 , "77F481E1BCF309FB9357FA1F1E7C7B39"},
+    {"RL_FOR_PROGRAM", "3.50_DEX"                 , ""},
+    {"RL_FOR_PROGRAM", "3.50/3.55"                , "78629D24BD721488F3A1E846938F87DF"},
+    {"RL_FOR_PROGRAM", "3.41_DEX"                 , ""},
+    {"RL_FOR_PROGRAM", "3.40/3.41_2/3.42"         , "43D940901E9655AD502C12D990977811"},
+    {"RL_FOR_PROGRAM", "3.3"                      , ""},
+    {"RL_FOR_PROGRAM", "3.21"                     , ""},
+    {"RL_FOR_PROGRAM", "3.15/3.15_DEX"            , ""},
+    {"RL_FOR_PROGRAM", "3.1"                      , ""},
+    {"RL_FOR_PROGRAM", "3.01"                     , ""},
+    {"RL_FOR_PROGRAM", "3"                        , ""},
+    {"RL_FOR_PROGRAM", "2.8"                      , ""},
+    {"RL_FOR_PROGRAM", "2.76"                     , ""},
+    {"RL_FOR_PROGRAM", "2.7"                      , ""},
+    {"RL_FOR_PROGRAM", "2.6"                      , ""},
+    {"RL_FOR_PROGRAM", "2.53"                     , ""},
+    {"RL_FOR_PROGRAM", "2.52"                     , ""},
+    {"RL_FOR_PROGRAM", "2.5"                      , ""},
+    {"RL_FOR_PROGRAM", "2.43_LEAKED_JIG"          , ""},
+    {"RL_FOR_PROGRAM", "2.43"                     , ""},
+    {"RL_FOR_PROGRAM", "2.42"                     , ""},
+    {"RL_FOR_PROGRAM", "2.41"                     , ""},
+    {"RL_FOR_PROGRAM", "2.4"                      , ""},
+    {"RL_FOR_PROGRAM", "2.36"                     , ""},
+    {"RL_FOR_PROGRAM", "2.35"                     , ""},
+    {"RL_FOR_PROGRAM", "2.3"                      , ""},
+    {"RL_FOR_PROGRAM", "2.2"                      , ""},
+    {"RL_FOR_PROGRAM", "2.17"                     , ""},
+    {"RL_FOR_PROGRAM", "2.1"                      , ""},
+    {"RL_FOR_PROGRAM", "2.01"                     , ""},
+    {"RL_FOR_PROGRAM", "2"                        , ""},
+    {"RL_FOR_PROGRAM", "1.93"                     , ""},
+    {"RL_FOR_PROGRAM", "1.92"                     , ""},
+    {"RL_FOR_PROGRAM", "1.9"                      , ""},
+    {"RL_FOR_PROGRAM", "1.82"                     , ""},
+    {"RL_FOR_PROGRAM", "1.81"                     , ""},
+    {"RL_FOR_PROGRAM", "1.8"                      , ""},
+    {"RL_FOR_PROGRAM", "1.7"                      , ""},
+    {"RL_FOR_PROGRAM", "1.6"                      , ""},
+    {"RL_FOR_PROGRAM", "1.54"                     , ""},
+    {"RL_FOR_PROGRAM", "1.51"                     , ""},
+    {"RL_FOR_PROGRAM", "1.5"                      , ""},
+    {"RL_FOR_PROGRAM", "1.32"                     , ""},
+    {"RL_FOR_PROGRAM", "1.31"                     , ""},
+    {"RL_FOR_PROGRAM", "1.3"                      , ""},
+    {"RL_FOR_PROGRAM", "1.11"                     , ""},
+    {"RL_FOR_PROGRAM", "1.1"                      , ""},
+    {"RL_FOR_PROGRAM", "1.02"                     , ""},
+    {NULL, NULL, NULL}
+};
+
+// see also
+// http://www.ps3devwiki.com/wiki/Revokation
+// http://www.ps3devwiki.com/wiki/Keys
+// http://www.ps3devwiki.com/wiki/SELF_File_Format_and_Decryption
+// http://www.ps3devwiki.com/wiki/Authentication_IDs
 
 // not really useful I was just curious
 // static struct DatabaseMD5 rosMD5[] = {
-    // {"ros0" , "4.11" , "479519FEE12E93D09B7430E62170B87F"},
-    // {"ros0" , "3.55" , "93E5B0B9FE5611AB1E7378DC38D1D266"},
-    // {"ros0" , "4.10" , "3DD58D297348872A963575B5C431AF7B"},
-    // {"ros1" , "4.00" , "E3439578CD59562CD325B12006C1068C"},
-    // {"ros0" , "4.25" , "34A52D68A4B73EBE7FCC0CCA14339A96"},
-    // {"ros1" , "4.20" , "2EC71148146DCECE412FE7BEBCA0DEFA"},
-    // {"ros0" , "3.66" , "F5D0C0A4E2BBBA2A0E05CDE2AB9C4DDE"},
-    // {"ros0" , "3.70" , "7D96F010ABA16517F1545D9059F158DB"},
-    // {"ros1" , "3.61" , "20B4513B13D067B5AF3E7209C6CC340F"},
-    // {NULL, NULL, NULL}
+// {"ros0" , "4.11" , "479519FEE12E93D09B7430E62170B87F"},
+// {"ros0" , "3.55" , "93E5B0B9FE5611AB1E7378DC38D1D266"},
+// {"ros0" , "4.10" , "3DD58D297348872A963575B5C431AF7B"},
+// {"ros1" , "4.00" , "E3439578CD59562CD325B12006C1068C"},
+// {"ros0" , "4.25" , "34A52D68A4B73EBE7FCC0CCA14339A96"},
+// {"ros1" , "4.20" , "2EC71148146DCECE412FE7BEBCA0DEFA"},
+// {"ros0" , "3.66" , "F5D0C0A4E2BBBA2A0E05CDE2AB9C4DDE"},
+// {"ros0" , "3.70" , "7D96F010ABA16517F1545D9059F158DB"},
+// {"ros1" , "3.61" , "20B4513B13D067B5AF3E7209C6CC340F"},
+// {NULL, NULL, NULL}
 // };
 
-static struct DatabaseMD5 rosFilesMD5[] = {
+static struct DatabaseMD5 rosFilesMD5[] =
+{
     // FW 2.80 Files
     {"creserved_0" , "2.80" , "09A1D434DBD7197E7C3AF8A7C28CA38B"},
     {"sdk_version" , "2.80" , "9A5BAFBDA4C414E884A8B4F5F58E002C"},
@@ -363,10 +668,10 @@ static struct DatabaseMD5 rosFilesMD5[] = {
     //{"me_iso_spu_module.self" , "3.41" , "a237f20a0491149b1c0890b0fce8e0ce"},
     //{"sv_iso_spu_module.self" , "3.41" , "7d20c0d5f382eeb31e6b830ea1ed4b8f"},
     //{"sb_iso_spu_module.self" , "3.41" , "5a219a19d772e26f41a86bcb8449093e"},
-    {"default.spp" , "3.41DBG" , "1717C8A5B8BF564CC5B533493001B7B0"},
-    {"lv1.self" , "3.41DBG" , "08A08B36EB53BE628EFD612B11FF2568"},
+    {"default.spp" , "3.41_DEX" , "1717C8A5B8BF564CC5B533493001B7B0"},
+    {"lv1.self" , "3.41_DEX" , "08A08B36EB53BE628EFD612B11FF2568"},
     //{"lv0" , "3.41" , "c0c71ae21aec6a6116464b8a7df4d534"},
-    {"lv2_kernel.self" , "3.41DBG" , "BD4DE04E55EFED427F5289AF2AAD3A0E"},
+    {"lv2_kernel.self" , "3.41_DEX" , "BD4DE04E55EFED427F5289AF2AAD3A0E"},
     //{"eurus_fw.bin" , "3.41" , "b5f54d9a11d1eae71f35b5907c6b9d3a"},
     //{"emer_init.self" , "3.41" , "d5f6040aab1b27e29461e847cffda08e"},
     //{"hdd_copy.self" , "3.41" , "f1142b43bcd76c0ec9a0cbf1be8be407"},
