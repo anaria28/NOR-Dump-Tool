@@ -204,6 +204,9 @@ struct Reporting
 
 char *bufferByteSwap (char *BufferToSwap, uint8_t StringType, uint32_t BufferSize)
 {
+    if (strlen(BufferToSwap)==0)
+        return ;
+
     char *Buffer;
     Buffer = malloc(3);
     uint32_t Cursor = 0;
@@ -469,6 +472,12 @@ void GetSection(FILE *FileToRead, uint32_t Position, uint8_t Size, uint8_t Displ
 
     if (((DisplayType)&(1<<0))==TYPE_HEX)
     {
+        if (!Verbose)
+        {
+            SetTextCYAN ();
+            printf ("TYPE_HEX ", Position, section_data);
+            SetTextNONE ();
+        }
         for (Cursor=0; Cursor<Size; Cursor++)
         {
             sprintf (section_data, "%s%02X", section_data, fgetc(FileToRead));
@@ -476,6 +485,12 @@ void GetSection(FILE *FileToRead, uint32_t Position, uint8_t Size, uint8_t Displ
     }
     else if (((DisplayType)&(1<<0))==TYPE_ASCII)
     {
+        if (!Verbose)
+        {
+            SetTextCYAN ();
+            printf ("TYPE_ASCII ", Position, section_data);
+            SetTextNONE ();
+        }
         for (Cursor=0; Cursor<Size; Cursor++)
         {
             sprintf (section_data, "%s%c", section_data, fgetc(FileToRead));
@@ -1734,7 +1749,6 @@ uint8_t CheckNotZero (FILE *FileToRead, uint32_t *PercentCheck)
     //  only for NAND -> http://www.ps3devwiki.com/wiki/Flash:ROS#Header   //
     /////////////////////////////////////////////////////////////////////////
 
-
     //http://www.ps3devwiki.com/wiki/Flash:ROS#ros_Entries
     //at ros0 offset + 0x14: nb of files, (nb of files) * 0x30 = size of TOC
     GetSection(FileToRead, SectionTOC[ros0].Offset+0x14, 0x04, TYPE_HEX, Buffer);
@@ -1773,12 +1787,10 @@ uint8_t CheckNotZero (FILE *FileToRead, uint32_t *PercentCheck)
     ros1FilledSize = SectionTOC[cvtrm].Offset - SectionTOC[ros1].Offset - ros1Size;
 
     //F69400 0x08 "OCRL0200" -> F69430 0x0110 non zero: OCRL0200 data
-
     GetSection(FileToRead, SectionTOC[DRL1].Offset+0x9400, 0x08, TYPE_ASCII, Buffer);
     if(strcmp(Buffer,"OCRL0200")==0)
     {
         OCRL0200_Pattern1 = pattern_zz;
-
     }
     else
     {
@@ -2207,7 +2219,7 @@ int main(int argc, char *argv[])
         }
         else
         {
-            printf ("No problem found in the Generic Data, anyway remain carefull!\n");
+            printf ("No problem found in the Generic Data, anyway remain careful!\n");
         }
         GlobalStatus |= Status;
         GlobalSizedCheck += *SizedCheck;
@@ -2226,7 +2238,7 @@ int main(int argc, char *argv[])
         }
         else
         {
-            printf ("No problem found in the Per Console Data, anyway remain carefull!\n");
+            printf ("No problem found in the Per Console Data, anyway remain careful!\n");
         }
         GlobalStatus |= Status;
         GlobalSizedCheck += *SizedCheck;
@@ -2250,7 +2262,7 @@ int main(int argc, char *argv[])
         }
         else
         {
-            printf ("No problem found in areas filled with '00' or 'FF', anyway remain carefull!\n");
+            printf ("No problem found in areas filled with '00' or 'FF', anyway remain careful!\n");
         }
         GlobalStatus |= Status;
         GlobalSizedCheck += *SizedCheck;
@@ -2268,7 +2280,7 @@ int main(int argc, char *argv[])
         }
         else
         {
-            printf ("There are data in supposed areas, anyway remain carefull!\n");
+            printf ("There are data in supposed areas, anyway remain careful!\n");
         }
         GlobalStatus |= Status;
         GlobalSizedCheck += *SizedCheck;
@@ -2287,7 +2299,7 @@ int main(int argc, char *argv[])
         }
         else
         {
-            printf ("No problem found in Per Firmware area carefull!\n");
+            printf ("No problem found in Per Firmware area careful!\n");
         }
         GlobalStatus |= Status;
         GlobalSizedCheck += *SizedCheck;
