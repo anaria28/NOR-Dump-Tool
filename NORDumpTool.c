@@ -1346,7 +1346,7 @@ uint8_t CheckPerFW (FILE *FileToRead, uint32_t *PercentCheck)
 
     printf ("Short MD5 checking for revokation\n");
     //http://www.ps3devwiki.com/wiki/Flash:Revoke_Package#trvk_prg0
-    if (!ReadSection("trvk_prg0 SCE hdr" , FileToRead , SectionTOC[trvk_prg0].Offset+0x10, 0x03 , TYPE_ASCII+DISPLAY_FAIL , 1 , "SCE"))
+    if (!ReadSection("trvk_prg0 SCE hdr" , FileToRead , SectionTOC[trvk_prg0].Offset+0x10, 0x04 , TYPE_HEX+DISPLAY_FAIL , 1 , "53434500"))
     {
         GetSection(FileToRead, SectionTOC[trvk_prg0].Offset+0x0E, 0x02, TYPE_HEX, Buffer);
         trvk_prg0Size = strtol(Buffer,NULL,16);
@@ -1413,7 +1413,7 @@ uint8_t CheckPerFW (FILE *FileToRead, uint32_t *PercentCheck)
 
     //http://www.ps3devwiki.com/wiki/Flash:Revoke_Package#trvk_prg1
     // No need to check the section if its header is broken
-    if (!ReadSection("trvk_prg1 SCE hdr" , FileToRead , SectionTOC[trvk_prg1].Offset+0x10, 0x03 , TYPE_ASCII+DISPLAY_FAIL , 1 , "SCE"))
+    if (!ReadSection("trvk_prg1 SCE hdr" , FileToRead , SectionTOC[trvk_prg1].Offset+0x10, 0x04 , TYPE_HEX+DISPLAY_FAIL , 1 , "53434500"))
     {
         GetSection(FileToRead, SectionTOC[trvk_prg1].Offset+0x0E, 0x02, TYPE_HEX, Buffer);
         trvk_prg1Size = strtol(Buffer,NULL,16);
@@ -1475,7 +1475,7 @@ uint8_t CheckPerFW (FILE *FileToRead, uint32_t *PercentCheck)
 
     //http://www.ps3devwiki.com/wiki/Flash:Revoke_Package#trvk_pkg0
     // No need to check the section if its header is broken
-    if (!ReadSection("trvk_pkg0 SCE hdr" , FileToRead , SectionTOC[trvk_pkg0].Offset+0x10, 0x03 , TYPE_ASCII+DISPLAY_FAIL , 1 , "SCE"))
+    if (!ReadSection("trvk_pkg0 SCE hdr" , FileToRead , SectionTOC[trvk_pkg0].Offset+0x10, 0x04 , TYPE_HEX+DISPLAY_FAIL , 1 , "53434500"))
     {
         GetSection(FileToRead, SectionTOC[trvk_pkg0].Offset+0x0E, 0x02, TYPE_HEX, Buffer);
         trvk_pkg0Size = strtol(Buffer,NULL,16);
@@ -1537,7 +1537,7 @@ uint8_t CheckPerFW (FILE *FileToRead, uint32_t *PercentCheck)
 
     //http://www.ps3devwiki.com/wiki/Flash:Revoke_Package#trvk_pkg1
     // No need to check the section if its header is broken
-    if (!ReadSection("trvk_pkg1 SCE hdr" , FileToRead , SectionTOC[trvk_pkg1].Offset+0x10, 0x03 , TYPE_ASCII+DISPLAY_FAIL , 1 , "SCE"))
+    if (!ReadSection("trvk_pkg1 SCE hdr" , FileToRead , SectionTOC[trvk_pkg1].Offset+0x10, 0x04 , TYPE_HEX+DISPLAY_FAIL , 1 , "53434500"))
     {
         GetSection(FileToRead, SectionTOC[trvk_pkg1].Offset+0x0E, 0x02, TYPE_HEX, Buffer);
         trvk_pkg1Size = strtol(Buffer,NULL,16);
