@@ -1,13 +1,15 @@
 
-#define NOR_FILE_SIZE         0x1000000
+#define NOR_FILE_SIZE       0x1000000
 
-#define NB_MAX_FILE_ROS       30
+#define NB_MAX_FILE_ROS     30
 
-#define MIN00                 3083652
-#define MAX00                 4867070
-#define MINFF                 1748186
-#define MAXFF                 1758252
-#define MAXOTHERS             83886
+#define NB_REGION_FLASH     0x0B
+
+#define MIN00               3083652
+#define MAX00               4867070
+#define MINFF               1748186
+#define MAXFF               1758252
+#define MAXOTHERS           83886
 // Liste of structures used in NOR Dump Tool code and its includes
 
 struct AddrLine

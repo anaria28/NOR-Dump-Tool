@@ -1,4 +1,3 @@
-
 // Knowledge and information sources : ps3devwiki.com | ps3hax.net | your friend google
 // Thanks to all people sharing their findings and knowledge!
 //
@@ -344,7 +343,13 @@ uint8_t ExtractSection(char* SectionName, FILE *FileToRead, uint32_t Position, u
     for (Cursor=0; Cursor<Size; Cursor++)
         fputc(Buffer[Cursor], BinaryFile);
 
-    printf ("Extraction done for %s\n", SectionName);
+    if (!Verbose)
+    {
+        SetTextCYAN ();
+        printf ("Extraction done for %s\n", SectionName);
+        SetTextNONE ();
+    }
+
     fclose(BinaryFile);
     free (Buffer);
     return EXIT_SUCCESS;
@@ -495,8 +500,6 @@ void GetSection(FILE *FileToRead, uint32_t Position, uint8_t Size, uint8_t Displ
         {
             sprintf (section_data, "%s%c", section_data, fgetc(FileToRead));
         }
-        //fread(section_data, Size, 1, FileToRead);
-        //section_data[Size]=NULL;
     }
 
     if (!Reverse)
@@ -539,11 +542,9 @@ uint8_t ReadSection(char *SectionName, FILE *FileToRead, uint32_t Position, uint
 
     if (!Verbose)
     {
-        //printf ("\nVerbose Start\n");
         SetTextCYAN ();
         printf ("ReadSection: at '%06X' read '%s' \n", Position, DisplaySection);
         SetTextNONE ();
-        //printf ("Verbose End\n\n");
     }
     if (!Reverse)
         bufferByteSwap(DisplaySection, (DisplayType)&(1<<0), strlen(DisplaySection));
@@ -662,29 +663,29 @@ uint8_t CheckRepetition(FILE *FileToRead, char *LineStuck)
         AddressIndex = AddressLine[Cursor].Address;
         //while (AddressIndex<NOR_FILE_SIZE)
         //{
-            if (!Verbose)
-            {
-                SetTextCYAN ();
-                printf ("- item '%d', checking repetition at Address '%08X'\n", Cursor, SectionTOC[FlashStart].Offset+AddressIndex+0x14);
-                SetTextNONE ();
-            }
-            if (ReadSection("Repetition", FileToRead, SectionTOC[FlashStart].Offset+AddressIndex+0x14, 0x04, TYPE_HEX, 1, Buffer)==EXIT_SUCCESS)
-            {
-                SetTextRED();
-                SetTextBOLD();
-                printf("Repetition found on Address '%08X' meaning line '%s' is stuck\n", AddressLine[Cursor].Address, AddressLine[Cursor].LineName);
-                SetTextNONE();
-                strcpy(LineStuck,AddressLine[Cursor].LineName);
-                Status=EXIT_FAILURE;
-                break;
-            }
-            else
-            {
-                printf ("No repetition found on Address '%08X' ! ", AddressIndex);
-                printStatus("GOOD",GOOD);
-                printf ("\n");
-            }
-            //AddressIndex += AddressLine[Cursor].Address;
+        if (!Verbose)
+        {
+            SetTextCYAN ();
+            printf ("- item '%d', checking repetition at Address '%08X'\n", Cursor, SectionTOC[FlashStart].Offset+AddressIndex+0x14);
+            SetTextNONE ();
+        }
+        if (ReadSection("Repetition", FileToRead, SectionTOC[FlashStart].Offset+AddressIndex+0x14, 0x04, TYPE_HEX, 1, Buffer)==EXIT_SUCCESS)
+        {
+            SetTextRED();
+            SetTextBOLD();
+            printf("Repetition found on Address '%08X' meaning line '%s' is stuck\n", AddressLine[Cursor].Address, AddressLine[Cursor].LineName);
+            SetTextNONE();
+            strcpy(LineStuck,AddressLine[Cursor].LineName);
+            Status=EXIT_FAILURE;
+            break;
+        }
+        else
+        {
+            printf ("No repetition found on Address '%08X' ! ", AddressIndex);
+            printStatus("GOOD",GOOD);
+            printf ("\n");
+        }
+        //AddressIndex += AddressLine[Cursor].Address;
         //}
     }
 
@@ -869,6 +870,7 @@ uint8_t CheckPerConsoleData(FILE *FileToRead, uint32_t *PercentCheck)
         {"cISD2 - wlan_data1 ", SectionTOC[cISD].Offset+0x0260           , 0x08, TYPE_HEX  +DISPLAY_ALWAYS, 0, NULL},
         {"cISD2 - wlan_data2 ", SectionTOC[cISD].Offset+0x0268           , 0x08, TYPE_HEX  +DISPLAY_ALWAYS, 0, NULL},
         {"cvtrm - pck/puk    ", SectionTOC[cvtrm].Offset+0x1D748         , 0x14, TYPE_HEX  +DISPLAY_ALWAYS, 0, NULL},
+        {"CELL_EXTNOR_AREAhdr", SectionTOC[CELL_EXTNOR_AREA].Offset      , 0x04, TYPE_ASCII+DISPLAY_FAIL  , 1, "CELL_EXTNOR_AREA"},
         {"CELL_EXTNOR_AREA 01", SectionTOC[CELL_EXTNOR_AREA].Offset+0x10 , 0x04, TYPE_HEX  +DISPLAY_FAIL  , 1, "00000001"},
         {"Offset for SHA1SUM?", SectionTOC[CELL_EXTNOR_AREA].Offset+0x20 , 0x04, TYPE_HEX  +DISPLAY_FAIL  , 1, "00000200"},
         {"CELL_EXTNOR_AREA 44", SectionTOC[CELL_EXTNOR_AREA].Offset+0x24 , 0x04, TYPE_HEX  +DISPLAY_FAIL  , 1, "00000044"},
@@ -941,14 +943,6 @@ uint8_t CheckPerConsoleData(FILE *FileToRead, uint32_t *PercentCheck)
         }
         Cursor++;
     }
-
-    // if (!SKUFound){
-    // printf ("Data found in NOR to identify the SKU are:\n- TargetID:'%s'\n", IDPSTargetID);
-    // printf ("- metldr Offset 0:'%s'\n", metldrOffset0);
-    // printf ("- metldr Offset 1:'%s'\n", metldrOffset1);
-    // printf ("- bootldr Offset 0:'%s'\n", bootldrOffset0);
-    // printf ("- bootldr Offset 1:'%s'\n", bootldrOffset1);
-    // }
 
 exit:
 
@@ -1233,6 +1227,7 @@ uint8_t CheckPerFW (FILE *FileToRead, uint32_t *PercentCheck)
 
     uint8_t Status = EXIT_SUCCESS;
     int8_t MD5Found = NOT_FOUND;
+    int8_t ExtractFile = -1;
 
     uint8_t MD5result[MD5_DIGEST_LENGTH];
 
@@ -1244,7 +1239,7 @@ uint8_t CheckPerFW (FILE *FileToRead, uint32_t *PercentCheck)
     uint32_t trvk_pkg0Size;
     uint32_t trvk_pkg1Size;
 
-    char FileNameToExtract[0x40]= {0};
+    char FileNameToExtract[0x100]= {0};
 
     //char  ROS0SDKVersion[]="3.55";
     //char  ROS1SDKVersion[]="3.41";
@@ -1364,14 +1359,6 @@ uint8_t CheckPerFW (FILE *FileToRead, uint32_t *PercentCheck)
             {
                 MD5Found = Cursor;
             }
-            //else{
-            // do something useful...
-            // NORFileName+trvk_prg0
-            //sprintf (FileNameToExtract,"%s_trvk_prg0.bin",NORFileName);
-            //else ( it's not good do something even smarter like
-            //      ExtractSection(FileNameToExtract, FileToRead, SectionTOC[trvk_prg0].Offset+0x10, trvk_prg0Size);
-            //  printf ("you can find the suspect file here:'%s', use any tools like scetool to checkit in detail", file+path);
-            //}
             Cursor++;
         }
     }
@@ -1395,6 +1382,7 @@ uint8_t CheckPerFW (FILE *FileToRead, uint32_t *PercentCheck)
         printf ("\n");
         Status = EXIT_FAILURE;
         MD5Found = NOT_FOUND;
+        ExtractFile = 0;
     }
     else if (MD5Found == NOT_FOUND)
     {
@@ -1409,8 +1397,16 @@ uint8_t CheckPerFW (FILE *FileToRead, uint32_t *PercentCheck)
         printStatus ("GOOD", GOOD);
         printf ("\n");
         MD5Found = NOT_FOUND;
+        ExtractFile = 0;
     }
+    if (!ExtractFile)
+    {
 
+        sprintf (FileNameToExtract,"%s_trvk_prg0.bin",NORFileName);
+        ExtractSection(FileNameToExtract, FileToRead, SectionTOC[trvk_prg0].Offset+0x10, trvk_prg0Size);
+        printf ("you can find the suspect file here:'%s', use any tools like scetool to check it in detail", FileNameToExtract);
+        ExtractFile = -1;
+    }
     //http://www.ps3devwiki.com/wiki/Flash:Revoke_Package#trvk_prg1
     // No need to check the section if its header is broken
     if (!ReadSection("trvk_prg1 SCE hdr" , FileToRead , SectionTOC[trvk_prg1].Offset+0x10, 0x04 , TYPE_HEX+DISPLAY_FAIL , 1 , "53434500"))
@@ -1430,10 +1426,6 @@ uint8_t CheckPerFW (FILE *FileToRead, uint32_t *PercentCheck)
             {
                 MD5Found = Cursor;
             }
-            //else ( it's not good do something even smarter like
-            //      ExtractSection(SectionRos[Cursor].name, FileToRead, SectionTOC[trvk_prg1].Offset+0x10, trvk_prg1Size);
-            //  printf ("you can find the suspect file here:'%s', use any tools like scetool to checkit in detail", file+path);
-            //}
             Cursor++;
         }
     }
@@ -1457,6 +1449,7 @@ uint8_t CheckPerFW (FILE *FileToRead, uint32_t *PercentCheck)
         printf ("\n");
         Status = EXIT_FAILURE;
         MD5Found = NOT_FOUND;
+        ExtractFile = 0;
     }
     else if (MD5Found == NOT_FOUND)
     {
@@ -1464,6 +1457,7 @@ uint8_t CheckPerFW (FILE *FileToRead, uint32_t *PercentCheck)
         printStatus ("FAIL", FAILURE);
         printf ("\n");
         Status = EXIT_FAILURE;
+        ExtractFile = 0;
     }
     else
     {
@@ -1473,6 +1467,13 @@ uint8_t CheckPerFW (FILE *FileToRead, uint32_t *PercentCheck)
         MD5Found = NOT_FOUND;
     }
 
+    if (!ExtractFile)
+    {
+        sprintf (FileNameToExtract,"%s_trvk_prg0.bin",NORFileName);
+        ExtractSection(FileNameToExtract, FileToRead, SectionTOC[trvk_prg0].Offset+0x10, trvk_prg0Size);
+        printf ("you can find the suspect file here:'%s', use any tools like scetool to check it in detail", FileNameToExtract);
+        ExtractFile = -1;
+    }
     //http://www.ps3devwiki.com/wiki/Flash:Revoke_Package#trvk_pkg0
     // No need to check the section if its header is broken
     if (!ReadSection("trvk_pkg0 SCE hdr" , FileToRead , SectionTOC[trvk_pkg0].Offset+0x10, 0x04 , TYPE_HEX+DISPLAY_FAIL , 1 , "53434500"))
@@ -1492,10 +1493,6 @@ uint8_t CheckPerFW (FILE *FileToRead, uint32_t *PercentCheck)
             {
                 MD5Found = Cursor;
             }
-            //else ( it's not good do something even smarter like
-            //      ExtractSection(SectionRos[Cursor].name, FileToRead, SectionTOC[trvk_pkg0].Offset+0x10, trvk_pkg0Size);
-            //  printf ("you can find the suspect file here:'%s', use any tools like scetool to checkit in detail", file+path);
-            //}
             Cursor++;
         }
     }
@@ -1511,6 +1508,7 @@ uint8_t CheckPerFW (FILE *FileToRead, uint32_t *PercentCheck)
         printf ("\n");
         Status = EXIT_FAILURE;
         MD5Found = NOT_FOUND;
+        ExtractFile = 0;
     }
     else if (MD5Found == NOT_BROKEN)
     {
@@ -1519,6 +1517,7 @@ uint8_t CheckPerFW (FILE *FileToRead, uint32_t *PercentCheck)
         printf ("\n");
         Status = EXIT_FAILURE;
         MD5Found = NOT_FOUND;
+        ExtractFile = 0;
     }
     else if (MD5Found == NOT_FOUND)
     {
@@ -1534,7 +1533,13 @@ uint8_t CheckPerFW (FILE *FileToRead, uint32_t *PercentCheck)
         printf ("\n");
         MD5Found = NOT_FOUND;
     }
-
+    if (!ExtractFile)
+    {
+        sprintf (FileNameToExtract,"%s_trvk_prg0.bin",NORFileName);
+        ExtractSection(FileNameToExtract, FileToRead, SectionTOC[trvk_prg0].Offset+0x10, trvk_prg0Size);
+        printf ("you can find the suspect file here:'%s', use any tools like scetool to check it in detail", FileNameToExtract);
+        ExtractFile = -1;
+    }
     //http://www.ps3devwiki.com/wiki/Flash:Revoke_Package#trvk_pkg1
     // No need to check the section if its header is broken
     if (!ReadSection("trvk_pkg1 SCE hdr" , FileToRead , SectionTOC[trvk_pkg1].Offset+0x10, 0x04 , TYPE_HEX+DISPLAY_FAIL , 1 , "53434500"))
@@ -1554,11 +1559,6 @@ uint8_t CheckPerFW (FILE *FileToRead, uint32_t *PercentCheck)
             {
                 MD5Found = Cursor;
             }
-
-            //else ( it's not good do something even smarter like
-            //      ExtractSection(SectionRos[Cursor].name, FileToRead, SectionTOC[trvk_pkg1].Offset+0x10, trvk_pkg1Size);
-            //  printf ("you can find the suspect file here:'%s', use any tools like scetool to checkit in detail", file+path);
-            //}
             Cursor++;
         }
     }
@@ -1582,6 +1582,7 @@ uint8_t CheckPerFW (FILE *FileToRead, uint32_t *PercentCheck)
         printf ("\n");
         Status = EXIT_FAILURE;
         MD5Found = NOT_FOUND;
+        ExtractFile = 0;
     }
     else if (MD5Found == NOT_FOUND)
     {
@@ -1589,6 +1590,7 @@ uint8_t CheckPerFW (FILE *FileToRead, uint32_t *PercentCheck)
         printStatus ("FAIL", FAILURE);
         printf ("\n");
         Status = EXIT_FAILURE;
+        ExtractFile = 0;
     }
     else
     {
@@ -1597,28 +1599,13 @@ uint8_t CheckPerFW (FILE *FileToRead, uint32_t *PercentCheck)
         printf ("\n");
         MD5Found = NOT_FOUND;
     }
-
-    //Cursor = 0;
-    //while (SectionRos[Cursor].name!=NULL)
-    //{
-//        if (strcmp(SectionRos[Cursor].name, "sdk_version")==0)
-//        {
-//            GetSection(FileToRead, SectionRos[Cursor].Offset, SectionRos[Cursor].Size, TYPE_ASCII, Buffer);
-//            if (Cursor<=NbFileTOCros0-1)
-//            {
-//                ROS0SDKVersion[0]=Buffer[0];
-//                ROS0SDKVersion[2]=Buffer[1];
-//                ROS0SDKVersion[3]=Buffer[2];
-//            }
-//            else
-//            {
-//                ROS1SDKVersion[0]=Buffer[0];
-//                ROS1SDKVersion[2]=Buffer[1];
-//                ROS1SDKVersion[3]=Buffer[2];
-//            }
-//        }
-//        Cursor++;
-    //}
+    if (!ExtractFile)
+    {
+        sprintf (FileNameToExtract,"%s_trvk_prg0.bin",NORFileName);
+        ExtractSection(FileNameToExtract, FileToRead, SectionTOC[trvk_prg0].Offset+0x10, trvk_prg0Size);
+        printf ("you can find the suspect file here:'%s', use any tools like scetool to check it in detail", FileNameToExtract);
+        ExtractFile = -1;
+    }
 
     printf ("Short MD5 checking for core os 0 files\n");
     Cursor = 0;
@@ -1636,23 +1623,6 @@ uint8_t CheckPerFW (FILE *FileToRead, uint32_t *PercentCheck)
             printf (" SDK '%c.%c%c'", Buffer[0], Buffer[1], Buffer[2]);
         }
         printf("\n");
-//        if (Cursor<=NbFileTOCros0-1)
-//        {
-//            printf ("SDK '%c.%c%c' | MD5 '", ROS0SDKVersion[0],ROS0SDKVersion[2],ROS0SDKVersion[3]);
-//        }
-//        else
-//        {
-//            printf ("SDK '%c.%c%c' | MD5 '", ROS1SDKVersion[0],ROS1SDKVersion[2],ROS1SDKVersion[3]);
-//        }
-        // Compare MD5 with known ones
-        //if (      ) {//   It's good, do something smart like
-
-        //      printf ("\t! \e[32mGOOD\e[m !\n");
-        //}
-        //else ( it's not good do something even smarter like
-        //      ExtractSection(SectionRos[Cursor].name, BinaryFile, SectionRos[Cursor].Offset, SectionRos[Cursor].Size);
-        //  printf ("you can find the suspect file here:'%s', use any tools like scetool to checkit in detail", file+path);
-        //}
         Cursor++;
     }
 
@@ -1959,6 +1929,228 @@ exit:
     return Status;
 }
 
+uint8_t ExtractAll (FILE *FileToRead, char *FolderName)
+{
+    uint16_t Cursor=0;
+
+    uint8_t Status = EXIT_SUCCESS;
+
+    uint8_t NbFileTOCros0;
+    uint8_t NbFileTOCros1;
+    uint8_t NbFileTOCFlash;
+
+    //uint32_t trvk_prg0Size;
+    //uint32_t trvk_prg1Size;
+    //uint32_t trvk_pkg0Size;
+    //uint32_t trvk_pkg1Size;
+    uint32_t metldrSize;
+
+    char FileNameToExtract[0x100]= {0};
+
+    char *Buffer;
+    Buffer = malloc(DATA_BUFFER_SIZE+1);
+
+    Status = MKDIR(FolderName,S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    if (chdir(FolderName))
+    {
+        printf ("Failed to use folder %s\n", FolderName);
+        goto exit;
+    }
+
+    struct Sections FlashRegions[NB_REGION_FLASH+1] =
+    {
+        {NULL, 0, 0, 0, 0, NULL}
+    };
+
+    struct Sections SectionRos0[NB_MAX_FILE_ROS+1] =
+    {
+        {NULL, 0, 0, 0, 0, NULL}
+    };
+
+    struct Sections SectionRos1[NB_MAX_FILE_ROS+1] =
+    {
+        {NULL, 0, 0, 0, 0, NULL}
+    };
+    GetSection(FileToRead, SectionTOC[FlashRegion].Offset+0x0004, 0x04, TYPE_HEX, Buffer);
+    NbFileTOCFlash = strtol(Buffer,NULL,16);
+
+    if (NbFileTOCFlash<=NB_REGION_FLASH)
+    {
+        for (Cursor=0; Cursor<NbFileTOCFlash; Cursor++)
+        {
+            //www.ps3devwiki.com/wiki/Flash:ROS#Entry_Table
+
+            GetSection(FileToRead, SectionTOC[FlashRegion].Offset+0x10+Cursor*0x30, 0x08, TYPE_HEX, Buffer);
+            FlashRegions[Cursor].Offset = strtol(Buffer,NULL,16) + SectionTOC[FlashRegion].Offset;
+
+            GetSection(FileToRead, SectionTOC[FlashRegion].Offset+0x18+Cursor*0x30, 0x08, TYPE_HEX, Buffer);
+            FlashRegions[Cursor].Size = strtol(Buffer,NULL,16);
+
+            GetSection(FileToRead, SectionTOC[FlashRegion].Offset+0x20+Cursor*0x30, 0x20, TYPE_ASCII, Buffer);
+            FlashRegions[Cursor].name = strdup(Buffer);
+
+            if ( (strcmp(FlashRegions[Cursor].name,SectionTOC[Cursor].name)!=0) || (FlashRegions[Cursor].Offset != SectionTOC[Cursor].Offset) || (SectionTOC[Cursor].Size!=FlashRegions[Cursor].Size) )
+            {
+                if (!Verbose)
+                {
+                    SetTextCYAN ();
+                    printf ("Broken Flash TOC, File '%d': '%s' at '%06X' size '%06X'\n",Cursor,FlashRegions[Cursor].name,FlashRegions[Cursor].Offset,FlashRegions[Cursor].Size);
+                    SetTextNONE ();
+                }
+                FlashRegions[Cursor].Offset = 0;
+                FlashRegions[Cursor].Size   = 0;
+                sprintf (FlashRegions[Cursor].name,"%s_Broken",SectionTOC[Cursor].name);
+                Status |= EXIT_FAILURE;
+            }
+
+            if (!Verbose)
+            {
+                SetTextCYAN ();
+                printf ("Flash TOC, File '%d': '%s' at '%06X' size '%06X'\n",Cursor,FlashRegions[Cursor].name,FlashRegions[Cursor].Offset,FlashRegions[Cursor].Size);
+                SetTextNONE ();
+            }
+        }
+
+        Cursor = 0;
+        while (FlashRegions[Cursor].name!=NULL)
+        {
+            Status |= ExtractSection (FlashRegions[Cursor].name,FileToRead, FlashRegions[Cursor].Offset, FlashRegions[Cursor].Size);
+            Cursor++;
+        }
+
+        if (!ReadSection("CELL_EXTNOR_AREA hdr", FileToRead, SectionTOC[CELL_EXTNOR_AREA].Offset, 0x04, TYPE_ASCII, 1, "CELL_EXTNOR_AREA"))
+        {
+            Status |= ExtractSection("CELL_EXTNOR_AREA", FileToRead, SectionTOC[CELL_EXTNOR_AREA].Offset   , SectionTOC[CELL_EXTNOR_AREA].Size);
+        }
+        else
+        {
+            ExtractSection("CELL_EXTNOR_AREA_Broken", FileToRead, 0, 0);
+            Status |= EXIT_FAILURE;
+        }
+
+        GetSection(FileToRead, SectionTOC[bootldr].Offset, 0x08, TYPE_HEX, Buffer);
+        if (!ReadSection("Bootldr binary size", FileToRead, SectionTOC[bootldr].Offset+0x10, 0x04, TYPE_HEX, 1, Buffer))
+        {
+            Status |= ExtractSection("bootldr", FileToRead, SectionTOC[bootldr].Offset, SectionTOC[bootldr].Size);
+        }
+        else
+        {
+            ExtractSection("bootldr_Broken", FileToRead, 0, 0);
+            Status |= EXIT_FAILURE;
+        }
+
+
+    }
+    else
+    {
+        printf ("Found %d files in the TOC of Flash, should be %d ! " , NbFileTOCFlash , NB_REGION_FLASH);
+        printStatus ("FAIL", FAILURE);
+        printf ("\n");
+        Status |= EXIT_FAILURE;
+        goto exit;
+    }
+
+    /////////////////////////////////////////////////////////////////////////
+    //  only for NAND -> http://www.ps3devwiki.com/wiki/Flash:ROS#Header   //
+    /////////////////////////////////////////////////////////////////////////
+
+    //http://www.ps3devwiki.com/wiki/Flash:ROS#ros_Entries
+    //at ros0 offset + 0x14: nb of files, (nb of files) * 0x30 = size of TOC
+    GetSection(FileToRead, SectionTOC[ros0].Offset+0x14, 0x04, TYPE_HEX, Buffer);
+    NbFileTOCros0 = strtol(Buffer,NULL,16);
+
+    if (NbFileTOCros0<NB_MAX_FILE_ROS)
+    {
+        if (!Verbose)
+        {
+            SetTextCYAN ();
+            printf ("Extracting core os 0 files\n");
+            SetTextNONE ();
+        }
+        for (Cursor=0; Cursor<NbFileTOCros0; Cursor++)
+        {
+            //www.ps3devwiki.com/wiki/Flash:ROS#Entry_Table
+
+            GetSection(FileToRead, SectionTOC[ros0].Offset+0x20+Cursor*0x30, 0x08, TYPE_HEX, Buffer);
+            SectionRos0[Cursor].Offset = strtol(Buffer,NULL,16) + SectionTOC[ros0].Offset + 0x10;
+
+            GetSection(FileToRead, SectionTOC[ros0].Offset+0x28+Cursor*0x30, 0x08, TYPE_HEX, Buffer);
+            SectionRos0[Cursor].Size = strtol(Buffer,NULL,16);
+
+            GetSection(FileToRead, SectionTOC[ros0].Offset+0x30+Cursor*0x30, 0x20, TYPE_ASCII, Buffer);
+            SectionRos0[Cursor].name = strdup(Buffer);
+
+        }
+        MKDIR("ROS0Files",S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        chdir("ROS0Files");
+        Cursor = 0;
+        while (SectionRos0[Cursor].name!=NULL)
+        {
+            Status |= ExtractSection (SectionRos0[Cursor].name,FileToRead, SectionRos0[Cursor].Offset, SectionRos0[Cursor].Size);
+            Cursor++;
+        }
+        chdir("..");
+    }
+    else
+    {
+        printf ("Found %d files in the TOC of ros0, max is %d ! " , NbFileTOCros0 , NB_MAX_FILE_ROS);
+        printStatus ("FAIL", FAILURE);
+        printf ("\n");
+        Status |= EXIT_FAILURE;
+        goto exit;
+    }
+
+    GetSection(FileToRead, SectionTOC[ros1].Offset+0x14, 0x04, TYPE_HEX, Buffer);
+    NbFileTOCros1 = strtol(Buffer,NULL,16);
+
+    if (NbFileTOCros1<NB_MAX_FILE_ROS)
+    {
+        if (!Verbose)
+        {
+            SetTextCYAN ();
+            printf ("Extracting core os 1 files\n");
+            SetTextNONE ();
+        }
+        for (Cursor=0; Cursor<NbFileTOCros1; Cursor++)
+        {
+            //http://www.ps3devwiki.com/wiki/Flash:ROS#Entry_Table
+
+            GetSection(FileToRead, SectionTOC[ros1].Offset+0x20+Cursor*0x30, 0x08, TYPE_HEX, Buffer);
+            SectionRos1[Cursor].Offset = strtol(Buffer,NULL,16) + SectionTOC[ros1].Offset + 0x10;
+
+            GetSection(FileToRead, SectionTOC[ros1].Offset+0x28+Cursor*0x30, 0x08, TYPE_HEX, Buffer);
+            SectionRos1[Cursor].Size = strtol(Buffer,NULL,16);
+
+            GetSection(FileToRead, SectionTOC[ros1].Offset+0x30+Cursor*0x30, 0x20, TYPE_ASCII, Buffer);
+            SectionRos1[Cursor].name=strdup(Buffer);
+
+        }
+        MKDIR("ROS1Files",S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        chdir("ROS1Files");
+        Cursor = 0;
+        while (SectionRos1[Cursor].name!=NULL)
+        {
+            Status |= ExtractSection (SectionRos1[Cursor].name,FileToRead, SectionRos1[Cursor].Offset, SectionRos1[Cursor].Size);
+            Cursor++;
+        }
+        chdir("..");
+    }
+    else
+    {
+        printf ("Found %d files in the TOC of ros1, max is %d ! " , NbFileTOCros1 , NB_MAX_FILE_ROS);
+        printStatus ("FAIL", FAILURE);
+        printf ("\n");
+        Status |= EXIT_FAILURE;
+        goto exit;
+    }
+
+exit:
+
+    free (Buffer);
+    return Status;
+}
+
+
 int main(int argc, char *argv[])
 {
     uint8_t  Status = EXIT_SUCCESS;
@@ -2150,28 +2342,18 @@ int main(int argc, char *argv[])
         printf ("*     Splitting NOR Dump     *\n");
         printf ("******************************\n");
 
-        Status = MKDIR(Option[0].Name,777);
-
-        if (chdir(Option[0].Name))
+        if ((Status = ExtractAll (BinaryFile, Option[0].Name)))
         {
-            printf ("Failed to use folder %s\n", Option[0].Name);
-            goto exit;
+            SetTextRED ();
+            SetTextBOLD ();
+            printf ("Some region could not be extracted properly\n");
+            printf ("You will find them in the folder '%s' with a '_Broken' suffix \n",Option[0].Name);
+            SetTextNONE ();
         }
-        GetSection (BinaryFile, SectionTOC[asecure_loader].Offset+0x18, 0x08, TYPE_HEX, Buffer);
-        ExtractionSize = strtol(Buffer,NULL,16);
-        Status |= ExtractSection("asecure_loader"  , BinaryFile, SectionTOC[asecure_loader].Offset+0x40, ExtractionSize);
-        Status |= ExtractSection("eEID"            , BinaryFile, SectionTOC[eEID].Offset               , SectionTOC[eEID].Size);
-        Status |= ExtractSection("cISD"            , BinaryFile, SectionTOC[cISD].Offset               , SectionTOC[cISD].Size);
-        Status |= ExtractSection("cCSD"            , BinaryFile, SectionTOC[cCSD].Offset               , SectionTOC[cCSD].Size);
-        Status |= ExtractSection("trvk_prg0"       , BinaryFile, SectionTOC[trvk_prg0].Offset          , SectionTOC[trvk_prg0].Size);
-        Status |= ExtractSection("trvk_prg1"       , BinaryFile, SectionTOC[trvk_prg1].Offset          , SectionTOC[trvk_prg1].Size);
-        Status |= ExtractSection("trvk_pkg0"       , BinaryFile, SectionTOC[trvk_pkg0].Offset          , SectionTOC[trvk_pkg0].Size);
-        Status |= ExtractSection("trvk_pkg1"       , BinaryFile, SectionTOC[trvk_pkg1].Offset          , SectionTOC[trvk_pkg1].Size);
-        Status |= ExtractSection("ros0"            , BinaryFile, SectionTOC[ros0].Offset               , SectionTOC[ros0].Size);
-        Status |= ExtractSection("ros1"            , BinaryFile, SectionTOC[ros1].Offset               , SectionTOC[ros1].Size);
-        Status |= ExtractSection("cvtrm"           , BinaryFile, SectionTOC[cvtrm].Offset              , SectionTOC[cvtrm].Size);
-        Status |= ExtractSection("CELL_EXTNOR_AREA", BinaryFile, SectionTOC[CELL_EXTNOR_AREA].Offset   , SectionTOC[CELL_EXTNOR_AREA].Size);
-        Status |= ExtractSection("bootldr"         , BinaryFile, SectionTOC[bootldr].Offset            , SectionTOC[bootldr].Size);
+        else
+        {
+            printf ("All regions have been exctracted in folder '%s'!\n",Option[0].Name);
+        }
         GlobalStatus |= Status;
     }
 
@@ -2375,3 +2557,7 @@ exit:
 
     return GlobalStatus;
 }
+
+
+
+
